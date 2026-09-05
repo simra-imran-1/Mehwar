@@ -173,7 +173,11 @@ def reproduce_selected_demo(
             )
             + "\n"
         )
-        if any((output / name).resolve() == path.resolve() for name in files):
+        if any(
+            candidate.resolve() == path.resolve()
+            or (candidate.exists() and candidate.samefile(path))
+            for candidate in (output / name for name in files)
+        ):
             raise ValueError("Output files must not overwrite the checkpoint")
         # Verify all selected runs before writing any result; use portable UTF-8/LF.
         output.mkdir(parents=True, exist_ok=True)
