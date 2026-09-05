@@ -65,6 +65,13 @@ def default_fixture_path() -> Path:
     )
 
 
+def _finite_json_number(token: str) -> float:
+    value = float(token)
+    if not math.isfinite(value):
+        raise DashboardDataError("EvaluationResult JSON numbers must be finite.")
+    return value
+
+
 def load_evaluation_result(source: Path | bytes | bytearray) -> EvaluationResult:
     """Load and minimally validate an EvaluationResult-compatible JSON payload."""
 
@@ -73,7 +80,11 @@ def load_evaluation_result(source: Path | bytes | bytearray) -> EvaluationResult
             raw_payload = source.read_text(encoding="utf-8")
         else:
             raw_payload = bytes(source).decode("utf-8")
-        payload = json.loads(raw_payload)
+        payload = json.loads(
+            raw_payload,
+            parse_float=_finite_json_number,
+            parse_constant=_finite_json_number,
+        )
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise DashboardDataError(
             f"Unable to read EvaluationResult JSON: {exc}"
