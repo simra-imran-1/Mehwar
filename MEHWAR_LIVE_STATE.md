@@ -1,4 +1,4 @@
-# MEHWAR LIVE STATE — ASSURANCE T10 REPRODUCIBILITY GATE
+# MEHWAR LIVE STATE — FINAL T6/T9 INTEGRATION GATE
 
 **Last updated:** 2026-09-05 PKT
 
@@ -30,14 +30,14 @@ Only integration-demo is modified. Main and both source branches remain unchange
 | T3 Selected C4 + A* | DONE | Both selected scenarios and exact deterministic references preserved |
 | T4 Common evaluator | DONE | Hero path calls common evaluate(), receiving ExecutionRecord from raw C4 execution; exactly one reset per run |
 | T5 Failure intelligence | DONE | Exact c4_c5_recurrence_v1 guard, precedence, and diagnostics preserved |
-| T6 Batch/evidence profiler | NOT DONE | Single-run raw count display is not a batch profiler |
+| T6 Batch/evidence profiler | DONE | Selected-demo batch profiler integrated; current EvaluationResult objects drive raw counts and approved descriptive evidence labels; no generalized success rate, safety score, or capability score |
 | T7 Report/provenance | DONE | Existing JSON/human reports retained, supplied research identifiers added, dashboard loader round-trip verified |
 | T8 Fixture/dashboard | DONE | Fixture, uploaded JSON, and local selected-C4 execution use the same renderer; Streamlit AppTest verifies both real cases |
-| T9 Visualization polish | NOT DONE | Existing trajectory presentation retained; no independent polish gate completed |
-| T10 Integration/repro | IN PROGRESS — reproducibility gate PASS; final integrated/demo review pending | One-command selected-demo reproduction, deterministic artifacts, full tests/lint, and real seed-33 verification pass |
+| T9 Visualization polish | DONE | Selected C4 visualization integrated with scientific (row,col), x=col/y=row, obstacles/start/goal, learned-controller path, supplied deterministic A* path, and repeated-cell markers for supplied two_cell_loop evidence |
+| T10 Integration/repro | DONE | Final T6/T9 integration gate passed with verified seed-33 checkpoint: 128 passed, zero skipped; Ruff PASS; git diff --check PASS; selected-demo helper PASS; independent reproduction PASS; manual dashboard review PASS |
 | T11 External feedback | NOT VERIFIED | No external response state established by this gate |
 | T12 Application | NOT VERIFIED | Outside this gate |
-| T13 Demo/screenshots | NOT DONE | Automated dashboard runs verified; no recording or screenshot deliverable produced |
+| T13 Demo/screenshots | IN PROGRESS | Integrated C4-0000 and C4-0001 dashboard screenshots captured and manually reviewed; final 45–60 s recording still pending |
 | T14 Red-team | NOT DONE | Requires independent integrated-candidate review |
 | T15 Submission | NOT DONE | Depends on subsequent gates |
 
@@ -49,12 +49,12 @@ Only integration-demo is modified. Main and both source branches remain unchange
 
 The dashboard preserves bundled synthetic fixture and uploaded JSON inputs and adds local selection of C4-0000/C4-0001. Local execution reads `MEHWAR_SEED33_CHECKPOINT`, imports PPO lazily on the explicit run button, and routes through integrated run_c4. Missing or invalid checkpoint configuration shows an error without synthetic fallback. Ordinary Streamlit reruns reuse the displayed result; switching scenario does not display the previous scenario's result.
 
-Real selected runs display `CURRENT MEHWAR SELECTED DEMO RUN`, a descriptive status, and adjacent raw single-run counts. C4-0000 displays `NO FAILURE OBSERVED IN SELECTED DEMO SET`; C4-0001 displays `LIVENESS DEGRADATION OBSERVED`. Synthetic fixture warnings remain visible for synthetic data. There is no opaque safety score.
+Real locally executed selected runs display `CURRENT MEHWAR SELECTED DEMO RUN`, explicitly state that the scenario is development-validation rather than a fresh holdout, and show adjacent raw evidence counts. C4-0000 displays `NO FAILURE OBSERVED IN SELECTED DEMO RUN`; C4-0001 displays `LIVENESS DEGRADATION OBSERVED`. The integrated T6 profiler can evaluate the selected two-scenario set using raw counts and approved descriptive labels without presenting a generalized success rate or safety/capability score. Uploaded evidence is distinguished from locally executed evidence, and contradictory current-demo provenance is rejected.
 
 ## Verification evidence
 
 - `python -m pip install -e ".[dev,ppo,dashboard]"`: succeeded in the repository `.venv`.
-- `python -m pytest` with checkpoint configured: **91 passed, zero skipped**. All existing 76 tests remain unchanged, with 15 new lightweight reproduction tests; five real-checkpoint cases executed without adding redundant model-heavy tests.
+- `python -m pytest` with checkpoint configured: **128 passed, zero skipped**. The inherited test suite remains covered alongside the T10 reproduction tests and the integrated T6/T9/dashboard-hardening tests; real-checkpoint cases executed successfully.
 - `python -m ruff check .`: **All checks passed**.
 - `git diff --check`: passed.
 - Streamlit AppTest selected and executed both real scenarios, checked shared rendering, evidence status/counts, and all five limitations. The real dashboard path called the common evaluator once and reset once, including controller construction.
@@ -62,8 +62,13 @@ Real selected runs display `CURRENT MEHWAR SELECTED DEMO RUN`, a descriptive sta
 - Fixture AppTest works with PyTorch import blocked. Pure integration/data modules import with site packages disabled; neither torch nor Streamlit is mandatory for the core.
 - Frozen T1 source, package exports, synthetic fixture, and every inherited test were checked unchanged against their respective source commits.
 - Checkpoint remains ignored/untracked. Hash is unchanged; the real-checkpoint suite also checks size and modification time.
+- Final T6/T9 integrated verification ran on Python 3.13.6 with the verified external seed-33 checkpoint. The complete suite passed: **128 passed, zero skipped**.
+- `scripts/verify_selected_demo.ps1 -OutputDir outputs/selected_demo` completed with PASS after using an explicit writable pytest basetemp because the default Windows user pytest temporary/cache directory was inaccessible.
+- The pytest basetemp workaround changed no MEHWAR source, scientific semantics, checkpoint contents, or filesystem ACLs.
+- Independent `python scripts/run_selected_demo.py --all --output-dir outputs/selected_demo_final` passed for both selected development-validation scenarios.
+- Manual integrated dashboard review confirmed the T9 coordinate convention `x = col`, `y = row`, obstacles/start/goal, learned trajectory, supplied deterministic A* trajectory, and C4-0001 recurrence markers.
 
-Runtime: Python 3.12.14, NumPy 2.5.2, PyTorch 2.14.0+cpu, Streamlit 1.63.0, pytest 8.4.2. Runtime versions are distinct from the checkpoint's SB3 2.9.0 metadata.
+Runtime: Python 3.13.6, NumPy 2.3.4, PyTorch 2.10.0+cpu, Streamlit 1.63.0, pytest 8.4.2. Runtime versions are distinct from the checkpoint's SB3 2.9.0 metadata.
 
 ## Assurance-side reproducibility gate
 
@@ -72,7 +77,7 @@ Mandatory starting HEAD was verified as `972c431756c2cb6d438c6d32faa36b75f00191c
 - `python scripts/run_selected_demo.py --scenario C4-0000` and `--scenario C4-0001` select one case; `--all` selects exactly those two. The checkpoint defaults to `MEHWAR_SEED33_CHECKPOINT`, with an explicit `--checkpoint` override.
 - The entry point uses the existing adapter and integrated run_c4 path, including ExecutionRecord/common evaluator, A*, recurrence classification, and EvaluationResult. It checks the supplied expected outcomes and reference costs/steps without implementing scientific rules again. A compact-JSON trajectory digest checks the entire C4-0001 trace; a test binds that digest to the unchanged regression oracle.
 - `scripts/verify_selected_demo.ps1` checks repository identity, displays current HEAD, verifies the external checkpoint hash before tests, documents or installs the extras, runs pytest/Ruff/whitespace checks, executes both selected demos, checks the final checkpoint hash, and prints PASS only on success.
-- Extras installation succeeded. An initial elevated helper invocation stopped on existing Windows pytest temporary/cache directory permissions; rerunning the same helper under normal workspace permissions passed. No ACL changes or model modifications were needed.
+- Extras installation succeeded. An initial helper invocation stopped on existing Windows pytest temporary/cache directory permissions. The final integrated helper run passed using an explicit writable workspace pytest basetemp with the cache provider disabled. No ACL changes, MEHWAR source changes, scientific-semantic changes, or model modifications were needed.
 - The real helper run with `-OutputDir outputs/selected_demo` passed. The independent reproduction command wrote a second copy under `outputs/selected_demo_repeat`; all five exported files were byte-identical between runs in the same source/runtime state.
 - Each output set contains exactly `C4-0000.json`, `C4-0000.txt`, `C4-0001.json`, `C4-0001.txt`, and `manifest.json`. JSON round-trips through the existing dashboard loader. Human reports contain all five scientific limitations. Both hero outcomes, A* references, and the complete C4-0001 trajectory match the existing evidence.
 - The manifest copies known source/protocol/movement/checkpoint metadata and explicitly identifies development_validation, selected current MVP demo, and fresh_holdout false. It lists output filenames and includes the resolvable package version. No timestamp, run ID, or environment identity is invented. The Git commit is included only when the source repository can be identified and its working tree is clean; it is omitted while edits are uncommitted.
@@ -97,4 +102,4 @@ Movement remains static 8-connected destination-cell-only legality, corner cutti
 
 Controlled 2-D grid-based mission-routing abstraction. Not physical flight validation. Not deployment approval. Not safety certification. Not evidence of general learned-controller or planner superiority.
 
-No blocker remains for the assurance-side reproducibility gate. Reproduction requires the external verified checkpoint and the optional PPO/dashboard dependencies. T10 remains IN PROGRESS until final integrated review/demo completion is explicitly verified. T6 NOT DONE, T9 NOT DONE, T11 NOT VERIFIED, T12 NOT VERIFIED, T13 NOT DONE, T14 NOT DONE, and T15 NOT DONE remain unchanged. Final integrated/demo review and the separate product-lane and red-team gates are the next dependencies.
+No blocker remains for T10. T6 and T9 are integrated and the final checkpoint-backed integration/reproduction gate passed. Remaining pre-submission work is T12 application completion, T13 final 45–60 s demo recording/screenshots, T14 independent jury/technical red-team, any critical-only fixes, and T15 submission. The current prototype remains a controlled 2-D grid-based mission-routing abstraction: not physical flight validation, deployment approval, safety certification, or evidence of general learned-controller/planner superiority.
