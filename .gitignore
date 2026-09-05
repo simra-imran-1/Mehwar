@@ -12,3 +12,6 @@ artifacts/
 *.zip
 *.pth
 *.pt
+
+# Disposable selected-demo reproduction reports.
+outputs/
