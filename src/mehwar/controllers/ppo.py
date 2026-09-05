@@ -88,7 +88,7 @@ class MaskablePPOCheckpointAdapter(Controller[Mapping[str, object], int]):
             "inference_backend": "direct frozen actor / torch CPU",
             "torch_version": str(torch.__version__),
         }
-        self.reset()
+        self._policy.eval()
 
     def reset(self, **kwargs: object) -> None:
         """The actor is feed-forward; no recurrent or episode state is retained."""

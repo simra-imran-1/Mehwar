@@ -5,7 +5,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from numbers import Integral
 
-from mehwar.contracts import Controller, EvaluationResult
+from mehwar import evaluator
+from mehwar.contracts import Controller, EvaluationResult, JsonValue
+from mehwar.evaluator import ExecutionRecord
 from mehwar.failure import PROTOCOL_ID, classify_failure
 from mehwar.references.astar import astar
 from mehwar.scenarios.c4 import (
@@ -58,16 +60,16 @@ def build_observation(
     return {"local_map": local, "global_map": global_map, "scalars": scalars}
 
 
-def run_c4(
+def _execute_c4(
     controller: Controller[Mapping[str, object], int], scenario: C4Scenario,
-) -> EvaluationResult:
+) -> ExecutionRecord:
     """Run one episode; steps counts completed moves, including repeated cells.
 
     Illegal actions end the episode without movement or cost. Attempt counts are
     recorded separately. Recurrence is classified after termination, never used
-    as an early-stop condition.
+    as an early-stop condition. The common evaluator owns controller reset;
+    this raw execution function never resets the controller.
     """
-    controller.reset()
     position = scenario.start
     trajectory = [position]
     previous_action = None
@@ -93,29 +95,65 @@ def run_c4(
         path_cost += movement_cost(action)
         previous_action = action
         success = position == scenario.goal
-    reference = astar(scenario)
-    metadata = dict(controller.metadata())
-    selected_demo = C4_SCENARIOS.get(scenario.scenario_id) == scenario
-    return EvaluationResult(
-        controller=type(controller).__name__,
-        controller_metadata=metadata,
-        scenario_id=scenario.scenario_id,
-        scenario_family=scenario.family,
+    return ExecutionRecord(
         success=success,
         steps=len(trajectory) - 1,
         path_cost=path_cost,
         failure_type=classify_failure(trajectory, success=success, collision=collision),
         trajectory=[list(cell) for cell in trajectory],
+        diagnostics={
+            "invalid_actions": invalid_actions, "collision": collision,
+            "attempted_actions": attempted_actions,
+            "truncated": not success and not collision,
+        },
+    )
+
+
+def run_c4(
+    controller: Controller[Mapping[str, object], int], scenario: C4Scenario,
+) -> EvaluationResult:
+    """Evaluate a C4 episode through T4, which owns the single pre-run reset."""
+    reference = astar(scenario)
+    selected_demo = C4_SCENARIOS.get(scenario.scenario_id) == scenario
+    provenance: dict[str, JsonValue] = {
+        "measurement_source": "current MEHWAR C4 runner execution",
+        "scenario_source": (
+            "frozen C4 development-validation manifest excerpt"
+            if selected_demo else "caller-supplied scenario; source not verified"
+        ),
+        "scenario_selection": (
+            "selected current MVP demo" if selected_demo else "custom scenario"
+        ),
+        "fresh_holdout": False,
+        "failure_protocol": PROTOCOL_ID,
+        "movement_contract": (
+            "8-connected destination-cell-only, corner cutting allowed, "
+            "orthogonal cost 1, diagonal cost sqrt(2)"
+        ),
+        "controller_metadata_source": "controller.metadata()",
+    }
+    if selected_demo:
+        provenance.update({
+            "data_classification": "current-mehwar-selected-demo-run",
+            "research_source_repository": "muzzammilsajid1/uav-dynamic-routing",
+            "research_source_commit": "95b8ec3834e79464e18dd9cdcef3c0378ba343cc",
+            "scenario_manifest": "evaluation/manifests/rl_v3_phase_c4_validation.json",
+            "scenario_manifest_git_blob": "d687a62a72dc266eb9092fa36221cba7fe309153",
+            "scenario_classification": "development_validation",
+        })
+    return evaluator.evaluate(
+        controller_id=type(controller).__name__,
+        controller=controller,
+        scenario_id=scenario.scenario_id,
+        scenario_family=scenario.family,
+        scenario_runner=lambda active_controller: _execute_c4(
+            active_controller, scenario,
+        ),
         reference_result={
             "planner": "A*", "found": reference.found, "steps": reference.steps,
             "cost": reference.cost,
             "trajectory": [list(cell) for cell in reference.trajectory],
             "movement_contract": MOVEMENT_CONTRACT,
-        },
-        diagnostics={
-            "invalid_actions": invalid_actions, "collision": collision,
-            "attempted_actions": attempted_actions,
-            "truncated": not success and not collision,
         },
         configuration={
             "grid_size": scenario.grid_size, "difficulty": scenario.difficulty,
@@ -131,19 +169,7 @@ def run_c4(
             "step_definition": "completed legal moves",
             "dynamics": False,
         },
-        provenance={
-            "measurement_source": "current MEHWAR C4 runner execution",
-            "scenario_source": (
-                "frozen C4 development-validation manifest excerpt"
-                if selected_demo else "caller-supplied scenario; source not verified"
-            ),
-            "scenario_selection": (
-                "selected current MVP demo" if selected_demo else "custom scenario"
-            ),
-            "fresh_holdout": False,
-            "failure_protocol": PROTOCOL_ID,
-            "controller_metadata_source": "controller.metadata()",
-        },
+        provenance=provenance,
     )
 
 

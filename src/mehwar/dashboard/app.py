@@ -6,20 +6,31 @@ import streamlit as st
 
 from mehwar.contracts import EvaluationResult, JsonValue
 from mehwar.dashboard.data import (
+    CURRENT_DEMO_LABEL,
     REFERENCE_UNAVAILABLE_MESSAGE,
     SYNTHETIC_FIXTURE_LABEL,
     DashboardDataError,
     build_run_summary,
     default_fixture_path,
     extract_coordinate_trajectory,
+    is_current_selected_demo,
     is_synthetic_or_non_research,
     load_evaluation_result,
     ordered_trajectory_rows,
 )
+from mehwar.dashboard.local_demo import (
+    checkpoint_path_from_environment,
+    run_local_c4_demo,
+)
+from mehwar.reporting import DEFAULT_LIMITATIONS
+
+FIXTURE_INPUT = "Bundled synthetic engineering fixture"
+UPLOAD_INPUT = "Uploaded EvaluationResult JSON"
+LOCAL_INPUT = "Run selected verified C4 demo locally"
 
 
 def main() -> None:
-    """Render the fixture-driven MEHWAR dashboard."""
+    """Render fixture, uploaded, and locally executed results through one path."""
 
     st.set_page_config(
         page_title="MEHWAR | Evaluation Evidence",
@@ -33,7 +44,12 @@ def main() -> None:
 
     result, source_label = _load_selected_result()
     synthetic = is_synthetic_or_non_research(result.provenance)
-    _render_evidence_banner(synthetic=synthetic, source_label=source_label)
+    _render_evidence_banner(
+        synthetic=synthetic, source_label=source_label,
+        selected_demo=is_current_selected_demo(result.provenance),
+    )
+    if is_current_selected_demo(result.provenance):
+        _render_selected_demo_counts(result)
     _render_run_summary(result)
     _render_trajectory(result)
     _render_reference(result)
@@ -45,23 +61,44 @@ def main() -> None:
 
 def _load_selected_result() -> tuple[EvaluationResult, str]:
     st.sidebar.header("Evaluation input")
-    upload = st.sidebar.file_uploader(
-        "EvaluationResult JSON (optional)",
-        type=["json"],
-        help="Leave empty to use the repository's synthetic sample fixture.",
+    input_mode = st.sidebar.radio(
+        "Input source", [FIXTURE_INPUT, UPLOAD_INPUT, LOCAL_INPUT],
     )
-
     try:
-        if upload is None:
+        if input_mode == FIXTURE_INPUT:
             fixture_path = default_fixture_path()
             return load_evaluation_result(fixture_path), fixture_path.name
+        if input_mode == LOCAL_INPUT:
+            return _load_local_demo()
+        upload = st.sidebar.file_uploader("EvaluationResult JSON", type=["json"])
+        if upload is None:
+            st.info("Upload an EvaluationResult JSON file to display its evidence.")
+            st.stop()
         return load_evaluation_result(upload.getvalue()), upload.name
     except DashboardDataError as exc:
         st.error(str(exc))
         st.stop()
 
 
-def _render_evidence_banner(*, synthetic: bool, source_label: str) -> None:
+def _load_local_demo() -> tuple[EvaluationResult, str]:
+    scenario_id = st.sidebar.selectbox("Selected C4 scenario", ["C4-0000", "C4-0001"])
+    checkpoint = checkpoint_path_from_environment()
+    if st.sidebar.button("Run verified C4 demo"):
+        # Never retain an old result if a new execution fails.
+        st.session_state.pop("local_c4_result", None)
+        with st.spinner("Running the selected C4 demo locally..."):
+            result = run_local_c4_demo(scenario_id)
+        st.session_state["local_c4_result"] = (scenario_id, checkpoint, result)
+    stored = st.session_state.get("local_c4_result")
+    if stored is None or stored[:2] != (scenario_id, checkpoint):
+        st.info("Select a scenario and click Run verified C4 demo.")
+        st.stop()
+    return stored[2], f"Local verified seed-33 / {scenario_id}"
+
+
+def _render_evidence_banner(
+    *, synthetic: bool, source_label: str, selected_demo: bool = False,
+) -> None:
     if synthetic:
         st.warning(
             f"### {SYNTHETIC_FIXTURE_LABEL}\n"
@@ -69,12 +106,40 @@ def _render_evidence_banner(*, synthetic: bool, source_label: str) -> None:
             "be interpreted as PPO, C4, research-replication, safety, or "
             "product-performance evidence."
         )
+    elif selected_demo:
+        st.info(
+            f"### {CURRENT_DEMO_LABEL}\n"
+            "Selected development-validation scenario; not a fresh holdout. "
+            "This single run does not establish general controller performance."
+        )
+        if not source_label.startswith("Local verified seed-33 / "):
+            st.caption("Evidence classification is taken from the uploaded payload.")
     else:
         st.info(
             "Evidence classification is taken from the supplied payload. Inspect "
             "provenance and limitations before drawing conclusions."
         )
     st.caption(f"Selected input: `{source_label}`")
+
+
+def _render_selected_demo_counts(result: EvaluationResult) -> None:
+    """Show single-run evidence beside a descriptive status, without a score."""
+    if result.success:
+        status = "NO FAILURE OBSERVED IN SELECTED DEMO SET"
+    elif result.failure_type in ("two_cell_loop", "longer_loop", "timeout_other"):
+        status = "LIVENESS DEGRADATION OBSERVED"
+    else:
+        status = "FAILURE OBSERVED IN SELECTED DEMO SET"
+    st.markdown(f"**{status}**")
+    successes = int(result.success)
+    loop_count = int(result.failure_type == "two_cell_loop")
+    collisions = int(bool(result.diagnostics.get("collision", False)))
+    invalid = result.diagnostics.get("invalid_actions", "unknown")
+    st.write(
+        f"1 selected run | {successes} {'success' if successes else 'successes'} | "
+        f"{int(not result.success)} observed failures | {loop_count} two_cell_loop | "
+        f"{collisions} collisions | {invalid} invalid actions"
+    )
 
 
 def _render_run_summary(result: EvaluationResult) -> None:
@@ -181,9 +246,7 @@ def _render_limitations(*, synthetic: bool) -> None:
     st.subheader("Evidence limitations")
     limitations = [
         "This view represents only the selected fixture or current run.",
-        "No flight validation.",
-        "No safety certification.",
-        "No deployment approval.",
+        *DEFAULT_LIMITATIONS,
     ]
     if synthetic:
         limitations.append(

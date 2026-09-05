@@ -17,6 +17,7 @@ SYNTHETIC_FIXTURE_LABEL = (
 REFERENCE_UNAVAILABLE_MESSAGE = (
     "Deterministic reference result not available for this run."
 )
+CURRENT_DEMO_LABEL = "CURRENT MEHWAR SELECTED DEMO RUN"
 
 _RESULT_FIELD_NAMES = tuple(field.name for field in fields(EvaluationResult))
 _MAPPING_FIELDS = (
@@ -155,6 +156,16 @@ def is_synthetic_or_non_research(provenance: Mapping[str, JsonValue]) -> bool:
             if any(marker in normalized for marker in _SYNTHETIC_MARKERS):
                 return True
     return False
+
+
+def is_current_selected_demo(provenance: Mapping[str, JsonValue]) -> bool:
+    """Recognize the explicit current-demo label, never override synthetic markers."""
+    return (
+        not is_synthetic_or_non_research(provenance)
+        and provenance.get("data_classification") == "current-mehwar-selected-demo-run"
+        and provenance.get("scenario_selection") == "selected current MVP demo"
+        and provenance.get("fresh_holdout") is False
+    )
 
 
 def extract_coordinate_trajectory(
