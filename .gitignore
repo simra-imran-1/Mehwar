@@ -6,3 +6,9 @@ __pycache__/
 .ruff_cache/
 build/
 dist/
+
+# External frozen model artifacts must never be committed.
+artifacts/
+*.zip
+*.pth
+*.pt
