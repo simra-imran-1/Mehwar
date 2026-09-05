@@ -18,6 +18,7 @@ REFERENCE_UNAVAILABLE_MESSAGE = (
     "Deterministic reference result not available for this run."
 )
 CURRENT_DEMO_LABEL = "CURRENT MEHWAR SELECTED DEMO RUN"
+SUPPLIED_CURRENT_DEMO_LABEL = "SUPPLIED CURRENT-DEMO EVIDENCE"
 
 _RESULT_FIELD_NAMES = tuple(field.name for field in fields(EvaluationResult))
 _MAPPING_FIELDS = (
@@ -164,6 +165,7 @@ def is_current_selected_demo(provenance: Mapping[str, JsonValue]) -> bool:
         not is_synthetic_or_non_research(provenance)
         and provenance.get("data_classification") == "current-mehwar-selected-demo-run"
         and provenance.get("scenario_selection") == "selected current MVP demo"
+        and provenance.get("scenario_classification") == "development_validation"
         and provenance.get("fresh_holdout") is False
     )
 

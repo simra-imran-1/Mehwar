@@ -7,6 +7,16 @@ from mehwar.dashboard.data import DashboardDataError
 
 CHECKPOINT_ENV = "MEHWAR_SEED33_CHECKPOINT"
 SELECTED_DEMO_SCENARIO_IDS = ("C4-0000", "C4-0001")
+_SAFE_CHECKPOINT_ERROR_DETAILS = (
+    "Checkpoint SHA256 does not match frozen seed-33 model",
+    "Checkpoint is missing required SB3 ZIP members",
+    "Invalid SB3 checkpoint archive metadata",
+    "Checkpoint seed must be 33",
+    "Checkpoint num_timesteps must be 452608",
+    "Checkpoint SB3 version must be 2.9.0",
+    "Checkpoint feature aliases disagree",
+    "Unique policy parameter count must be 428937",
+)
 
 
 def checkpoint_path_from_environment() -> str:
@@ -37,7 +47,9 @@ def run_local_c4_demo(scenario_id: str) -> EvaluationResult:
             'Local inference requires the ppo extra: pip install -e ".[ppo,dashboard]"'
         ) from exc
     except (OSError, ValueError, RuntimeError) as exc:
-        raise DashboardDataError(f"Verified C4 demo could not run: {exc}") from exc
+        raise DashboardDataError(
+            _safe_execution_error("Verified C4 demo", exc)
+        ) from exc
 
 
 def run_selected_c4_batch() -> tuple[EvaluationResult, ...]:
@@ -59,5 +71,19 @@ def run_selected_c4_batch() -> tuple[EvaluationResult, ...]:
         ) from exc
     except (OSError, ValueError, RuntimeError) as exc:
         raise DashboardDataError(
-            f"Selected C4 demo batch could not run: {exc}"
+            _safe_execution_error("Selected C4 demo batch", exc)
         ) from exc
+
+
+def _safe_execution_error(operation: str, error: Exception) -> str:
+    message = str(error)
+    safe_detail = next(
+        (detail for detail in _SAFE_CHECKPOINT_ERROR_DETAILS if detail in message),
+        None,
+    )
+    if safe_detail is not None:
+        return f"{operation} could not run: {safe_detail}"
+    return (
+        f"{operation} could not run. Verify the configured checkpoint and runtime; "
+        "local filesystem paths are not displayed."
+    )
