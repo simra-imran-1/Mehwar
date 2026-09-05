@@ -23,6 +23,7 @@ from mehwar.dashboard.local_demo import (
     run_local_c4_demo,
     run_selected_c4_batch,
 )
+from mehwar.dashboard.visualization import build_c4_visualization, c4_chart_spec
 from mehwar.evidence import EvidenceProfile, build_evidence_profile
 from mehwar.reporting import DEFAULT_LIMITATIONS
 
@@ -255,6 +256,11 @@ def _render_run_summary(result: EvaluationResult) -> None:
 
 def _render_trajectory(result: EvaluationResult) -> None:
     st.subheader("Trajectory evidence")
+    c4_visualization = build_c4_visualization(result)
+    if c4_visualization is not None:
+        _render_c4_trajectory(c4_visualization)
+        return
+
     coordinates = extract_coordinate_trajectory(result.trajectory)
     if coordinates is not None:
         plot_rows = [
@@ -292,6 +298,24 @@ def _render_trajectory(result: EvaluationResult) -> None:
         st.dataframe(rows, width="stretch", hide_index=True)
     else:
         st.info("No trajectory records were supplied for this run.")
+
+
+def _render_c4_trajectory(visualization) -> None:
+    outcome = (
+        "Mission completed"
+        if visualization.mission_completed
+        else "Mission not completed"
+    )
+    failure_type = visualization.supplied_failure_type or "Not supplied"
+    st.markdown(f"**Outcome:** {outcome} | **Supplied failure type:** {failure_type}")
+    st.caption(
+        "Scientific positions are (row, col); the chart maps x = col and y = row. "
+        "Blue: learned-controller path. Gray dashed: supplied deterministic A* "
+        "reference. Dark squares: obstacles. Green diamond: start. Orange cross: "
+        "goal. Red rings: repeated cells shown only for a supplied two_cell_loop "
+        "result."
+    )
+    st.vega_lite_chart(c4_chart_spec(visualization), width="stretch")
 
 
 def _render_reference(result: EvaluationResult) -> None:
