@@ -21,7 +21,9 @@ from mehwar.dashboard.data import (
 from mehwar.dashboard.local_demo import (
     checkpoint_path_from_environment,
     run_local_c4_demo,
+    run_selected_c4_batch,
 )
+from mehwar.evidence import EvidenceProfile, build_evidence_profile
 from mehwar.reporting import DEFAULT_LIMITATIONS
 
 FIXTURE_INPUT = "Bundled synthetic engineering fixture"
@@ -42,12 +44,15 @@ def main() -> None:
         "Navigation-controller capability-boundary and mission-liveness evaluation"
     )
 
-    result, source_label = _load_selected_result()
+    result, source_label, batch_results = _load_selected_result()
     synthetic = is_synthetic_or_non_research(result.provenance)
     _render_evidence_banner(
-        synthetic=synthetic, source_label=source_label,
+        synthetic=synthetic,
+        source_label=source_label,
         selected_demo=is_current_selected_demo(result.provenance),
     )
+    if batch_results is not None:
+        _render_selected_demo_profile(batch_results)
     if is_current_selected_demo(result.provenance):
         _render_selected_demo_counts(result)
     _render_run_summary(result)
@@ -59,28 +64,33 @@ def main() -> None:
     _render_limitations(synthetic=synthetic)
 
 
-def _load_selected_result() -> tuple[EvaluationResult, str]:
+def _load_selected_result() -> tuple[
+    EvaluationResult, str, tuple[EvaluationResult, ...] | None
+]:
     st.sidebar.header("Evaluation input")
     input_mode = st.sidebar.radio(
-        "Input source", [FIXTURE_INPUT, UPLOAD_INPUT, LOCAL_INPUT],
+        "Input source",
+        [FIXTURE_INPUT, UPLOAD_INPUT, LOCAL_INPUT],
     )
     try:
         if input_mode == FIXTURE_INPUT:
             fixture_path = default_fixture_path()
-            return load_evaluation_result(fixture_path), fixture_path.name
+            return load_evaluation_result(fixture_path), fixture_path.name, None
         if input_mode == LOCAL_INPUT:
             return _load_local_demo()
         upload = st.sidebar.file_uploader("EvaluationResult JSON", type=["json"])
         if upload is None:
             st.info("Upload an EvaluationResult JSON file to display its evidence.")
             st.stop()
-        return load_evaluation_result(upload.getvalue()), upload.name
+        return load_evaluation_result(upload.getvalue()), upload.name, None
     except DashboardDataError as exc:
         st.error(str(exc))
         st.stop()
 
 
-def _load_local_demo() -> tuple[EvaluationResult, str]:
+def _load_local_demo() -> tuple[
+    EvaluationResult, str, tuple[EvaluationResult, ...] | None
+]:
     scenario_id = st.sidebar.selectbox("Selected C4 scenario", ["C4-0000", "C4-0001"])
     checkpoint = checkpoint_path_from_environment()
     if st.sidebar.button("Run verified C4 demo"):
@@ -89,15 +99,40 @@ def _load_local_demo() -> tuple[EvaluationResult, str]:
         with st.spinner("Running the selected C4 demo locally..."):
             result = run_local_c4_demo(scenario_id)
         st.session_state["local_c4_result"] = (scenario_id, checkpoint, result)
+    if st.sidebar.button("Run selected demo set"):
+        st.session_state.pop("local_c4_result", None)
+        st.session_state.pop("selected_c4_batch", None)
+        with st.spinner("Running C4-0000 and C4-0001 locally..."):
+            batch_results = run_selected_c4_batch()
+        st.session_state["selected_c4_batch"] = (checkpoint, batch_results)
+
+    stored_batch = st.session_state.get("selected_c4_batch")
+    batch_results = (
+        stored_batch[1]
+        if stored_batch is not None and stored_batch[0] == checkpoint
+        else None
+    )
     stored = st.session_state.get("local_c4_result")
-    if stored is None or stored[:2] != (scenario_id, checkpoint):
-        st.info("Select a scenario and click Run verified C4 demo.")
+    if stored is not None and stored[:2] == (scenario_id, checkpoint):
+        result = stored[2]
+    elif batch_results is not None:
+        result = next(
+            result for result in batch_results if result.scenario_id == scenario_id
+        )
+    else:
+        st.info(
+            "Select a scenario and click Run verified C4 demo, or run the selected "
+            "demo set."
+        )
         st.stop()
-    return stored[2], f"Local verified seed-33 / {scenario_id}"
+    return result, f"Local verified seed-33 / {scenario_id}", batch_results
 
 
 def _render_evidence_banner(
-    *, synthetic: bool, source_label: str, selected_demo: bool = False,
+    *,
+    synthetic: bool,
+    source_label: str,
+    selected_demo: bool = False,
 ) -> None:
     if synthetic:
         st.warning(
@@ -124,21 +159,74 @@ def _render_evidence_banner(
 
 def _render_selected_demo_counts(result: EvaluationResult) -> None:
     """Show single-run evidence beside a descriptive status, without a score."""
-    if result.success:
-        status = "NO FAILURE OBSERVED IN SELECTED DEMO SET"
-    elif result.failure_type in ("two_cell_loop", "longer_loop", "timeout_other"):
-        status = "LIVENESS DEGRADATION OBSERVED"
-    else:
-        status = "FAILURE OBSERVED IN SELECTED DEMO SET"
-    st.markdown(f"**{status}**")
-    successes = int(result.success)
-    loop_count = int(result.failure_type == "two_cell_loop")
-    collisions = int(bool(result.diagnostics.get("collision", False)))
-    invalid = result.diagnostics.get("invalid_actions", "unknown")
+    profile = build_evidence_profile((result,))
+    st.markdown(f"**{profile.evidence_label}**")
+    successes = profile.mission_completions
+    loop_count = profile.failure_type_counts.get("two_cell_loop", 0)
+    collisions = profile.failure_type_counts.get("collision", 0)
+    invalid = (
+        profile.invalid_actions_total if profile.invalid_actions_complete else "unknown"
+    )
     st.write(
         f"1 selected run | {successes} {'success' if successes else 'successes'} | "
-        f"{int(not result.success)} observed failures | {loop_count} two_cell_loop | "
+        f"{profile.mission_failures} observed failures | {loop_count} two_cell_loop | "
         f"{collisions} collisions | {invalid} invalid actions"
+    )
+
+
+def _render_selected_demo_profile(
+    results: tuple[EvaluationResult, ...],
+) -> None:
+    profile = build_evidence_profile(results)
+    st.subheader("Selected demo set evidence profile")
+    st.markdown(f"### {profile.evidence_label}")
+    st.caption(
+        "Selected current MVP demo set; development-validation classification; "
+        "fresh_holdout is false. Raw counts describe only these selected "
+        "demonstrations, not a fresh holdout or general performance estimate."
+    )
+
+    counts = st.columns(4)
+    counts[0].metric("Scenarios evaluated", str(profile.scenarios_evaluated))
+    counts[1].metric("Mission completions", str(profile.mission_completions))
+    counts[2].metric("Mission failures", str(profile.mission_failures))
+    counts[3].metric("Reference completions", str(profile.reference_completions))
+    st.write(f"Scenario IDs: {', '.join(profile.scenario_ids)}")
+    st.write(
+        "Supplied failure-type counts: "
+        f"two_cell_loop={profile.failure_type_counts.get('two_cell_loop', 0)} | "
+        f"longer_loop={profile.failure_type_counts.get('longer_loop', 0)} | "
+        f"timeout_other={profile.failure_type_counts.get('timeout_other', 0)} | "
+        f"collision={profile.failure_type_counts.get('collision', 0)}"
+    )
+    st.caption(f"All supplied failure types: {_format_failure_counts(profile)}")
+    invalid_actions = (
+        str(profile.invalid_actions_total)
+        if profile.invalid_actions_complete
+        else "unknown (incomplete diagnostics)"
+    )
+    st.write(f"Invalid actions: {invalid_actions}")
+    st.write(
+        "Deterministic references available: "
+        f"{profile.reference_results_available}; completed: "
+        f"{profile.reference_completions}"
+    )
+    st.caption(
+        "Each EvaluationResult below retains its own controller metadata, "
+        "configuration, trajectory, reference result, diagnostics, and provenance."
+    )
+    for result in results:
+        with st.expander(f"Individual EvaluationResult — {result.scenario_id}"):
+            st.json(result.to_dict())
+
+
+def _format_failure_counts(profile: EvidenceProfile) -> str:
+    return (
+        ", ".join(
+            f"{failure_type if failure_type is not None else 'null'}={count}"
+            for failure_type, count in profile.failure_type_counts.items()
+        )
+        or "none supplied"
     )
 
 
