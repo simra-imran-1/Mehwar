@@ -4,15 +4,34 @@ MEHWAR is a research-backed functional prototype for characterizing navigation-c
 
 The integrated hero path is a verified frozen controller, selected C4 scenario execution, an `ExecutionRecord`, the common T4 evaluator, and the unchanged T1 `EvaluationResult`. The result feeds JSON/human reports and the Streamlit dashboard. The evaluator owns the single pre-run controller reset. The integration gate verifies this full path against both source lanes.
 
-## Setup
+## Reproduce the selected MEHWAR demo
 
 Python 3.10 or newer:
 
 ```powershell
+git clone --branch feat/integration-demo https://github.com/simra-imran-1/Mehwar.git
+cd Mehwar
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev,ppo,dashboard]"
+$env:MEHWAR_SEED33_CHECKPOINT = (Resolve-Path ".\artifacts\seed33\model_stage_301056_lifetime_452608.zip").Path
+.\scripts\verify_selected_demo.ps1 -OutputDir outputs/selected_demo
+python -m streamlit run app.py
 ```
+
+Supply the checkpoint separately before resolving its path; any explicit external path is valid. The helper verifies its SHA256 **before tests**, shows the checkout SHA, runs pytest/Ruff, and executes both selected demos. It stops on failure and finishes with PASS only after checking the expected evidence and unchanged checkpoint. Add `-InstallDependencies` to have the helper run the install command itself.
+
+After setup, the one-command reproduction entry point is:
+
+```powershell
+python scripts/run_selected_demo.py --all --output-dir outputs/selected_demo
+```
+
+Use `--scenario C4-0000` or `--scenario C4-0001` instead of `--all` for one case. `--checkpoint PATH` overrides the environment variable. The command verifies the checkpoint through the existing adapter, uses integrated `run_c4`, and asserts outcomes, A* references, and the complete C4-0001 regression trajectory. These are **current MEHWAR measurements on selected development-validation demos**, not a fresh holdout, within a controlled 2-D abstraction.
+
+`--all` writes exactly two result pairs (`C4-0000.json/.txt`, `C4-0001.json/.txt`) and `manifest.json` in a fresh output directory. JSON retains the unchanged EvaluationResult schema and can be uploaded to the dashboard; text uses the existing human report with limitations. Without `--output-dir`, reports print to the terminal. Repeated commands overwrite their named outputs; `outputs/` is disposable and ignored by Git.
+
+The manifest copies known source/checkpoint/protocol identifiers and lists output filenames. It adds the package version when resolvable, and `mehwar_git_commit` only when Git identifies this source checkout and its working tree is clean. Otherwise the commit is omitted. No timestamps, run IDs, or environment identities are generated. Repeated exports in the same checkout/runtime have identical content; a different verified Git SHA is an explicit provenance change.
 
 The optional groups are `dev`, `ppo` (NumPy/PyTorch), and `dashboard` (Streamlit). Normal core installation has no runtime dependencies. Contracts, common evaluator, failure classification, scenarios, A*, reporting, and dashboard data loading use only the standard library. For fixture/upload use without PyTorch, install `.[dev,dashboard]`; the full test suite requires all extras.
 
@@ -46,16 +65,6 @@ The checkpoint is intentionally external, ignored, and untracked. The adapter ne
 
 `MaskablePPOCheckpointAdapter(checkpoint_path)` checks the hash, SB3 ZIP data/version/weights, alias agreement, and strict architecture. Direct CPU actor inference avoids SB3-Contrib and cloudpickle execution. Frozen deterministic argmax is restricted to supplied legal actions, with lowest-ID tie breaking. Checkpoint identity stays in `controller_metadata`.
 
-```powershell
-$env:MEHWAR_SEED33_CHECKPOINT = (Resolve-Path ".\artifacts\seed33\model_stage_301056_lifetime_452608.zip").Path
-python -m pytest
-python -m ruff check .
-git diff --check
-python -m mehwar.scenarios.c4_runner --checkpoint "$env:MEHWAR_SEED33_CHECKPOINT" --scenario C4-0000
-python -m mehwar.scenarios.c4_runner --checkpoint "$env:MEHWAR_SEED33_CHECKPOINT" --scenario C4-0001 --json
-python -m streamlit run app.py
-```
-
 Real-checkpoint tests skip only if the environment variable is unset/empty. A configured missing/corrupt checkpoint or missing inference dependencies fails. Tests verify both outcomes, the entire supplied C4-0001 trajectory, repeatability, and unchanged checkpoint hash/size/modification time.
 
 ## Dashboard and integration surface
@@ -63,18 +72,6 @@ Real-checkpoint tests skip only if the environment variable is unset/empty. A co
 The dashboard has three input paths: bundled synthetic engineering fixture, uploaded `EvaluationResult` JSON, and a locally executed selected C4 demo. The local path selects C4-0000 or C4-0001 and reads `MEHWAR_SEED33_CHECKPOINT`; missing/invalid configuration produces a visible error, never synthetic fallback. PPO imports occur only when a local run is requested. Results use the same rendering path for trajectory, reference, diagnostics, configuration, provenance, and limitations.
 
 The bundled fixture remains **SYNTHETIC ENGINEERING FIXTURE - UI/INTEGRATION TEST ONLY**. Current selected C4 results are visibly labeled **CURRENT MEHWAR SELECTED DEMO RUN**. Status labels are accompanied by raw counts for one selected run; there is no opaque safety score or generalization from one success. Uploaded evidence classifications remain claims of the supplied payload.
-
-```python
-from mehwar.controllers.ppo import MaskablePPOCheckpointAdapter
-from mehwar.dashboard.data import load_evaluation_result
-from mehwar.reporting import render_human_report, result_to_json
-from mehwar.scenarios.c4 import C4_0001
-from mehwar.scenarios.c4_runner import run_c4
-
-result = run_c4(MaskablePPOCheckpointAdapter(checkpoint_path), C4_0001)
-print(render_human_report(result))
-loaded = load_evaluation_result(result_to_json(result).encode("utf-8"))
-```
 
 Selected-demo provenance records the supplied research source identifiers: repository `muzzammilsajid1/uav-dynamic-routing`, commit `95b8ec3834e79464e18dd9cdcef3c0378ba343cc`, manifest `evaluation/manifests/rl_v3_phase_c4_validation.json`, blob `d687a62a72dc266eb9092fa36221cba7fe309153`, and classification `development_validation`. This gate uses the supplied identifiers without modifying the research repository. No timestamps, run IDs, or current MEHWAR SHA are fabricated. Custom scenarios retain unverified-source labels.
 
