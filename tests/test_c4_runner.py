@@ -110,3 +110,59 @@ def test_start_at_goal_never_calls_act():
     assert result.success and result.steps == 0 and result.path_cost == 0
     assert controller.reset_count == 1
     assert not controller.observations
+
+
+@pytest.mark.parametrize("action_type", [np.int32, np.int64, np.uint8])
+def test_numpy_integer_actions_complete_legal_moves(action_type):
+    scenario = replace(C4_0000, blocked=frozenset(), start=(1, 1), goal=(2, 2))
+    result = run_c4(ScriptedController([action_type(7)]), scenario)
+    assert result.success and result.failure_type == "success"
+    assert result.steps == 1 and result.path_cost == sqrt(2)
+    assert result.trajectory == [[1, 1], [2, 2]]
+    assert result.diagnostics == {
+        "invalid_actions": 0, "collision": False,
+        "attempted_actions": 1, "truncated": False,
+    }
+
+
+def test_nonrecurrent_timeout_keeps_completed_path_cost():
+    scenario = replace(C4_0000, blocked=frozenset(), start=(0, 0),
+                       goal=(14, 14), optimal_steps=1)
+    controller = ScriptedController([3, 7])
+    result = run_c4(controller, scenario)
+    assert not result.success and result.failure_type == "timeout_other"
+    assert result.steps == scenario.episode_budget == 10
+    assert result.path_cost == pytest.approx(5 + 5 * sqrt(2))
+    assert result.trajectory[0] == [0, 0] and result.trajectory[-1] == [5, 10]
+    assert len({tuple(cell) for cell in result.trajectory}) == 11
+    assert controller.reset_count == 1 and len(controller.observations) == 10
+    assert result.diagnostics == {
+        "invalid_actions": 0, "collision": False,
+        "attempted_actions": 10, "truncated": True,
+    }
+
+
+def test_collision_after_recurrence_preserves_cost_and_counts_attempts():
+    scenario = replace(C4_0000, blocked=frozenset(), start=(1, 1), goal=(14, 14))
+    controller = ScriptedController([7, 4, 7, 8])
+    result = run_c4(controller, scenario)
+    assert not result.success and result.failure_type == "collision"
+    assert result.steps == 3 and result.path_cost == pytest.approx(3 * sqrt(2))
+    assert result.trajectory == [[1, 1], [2, 2], [1, 1], [2, 2]]
+    assert controller.reset_count == 1 and len(controller.observations) == 4
+    assert result.diagnostics == {
+        "invalid_actions": 1, "collision": True,
+        "attempted_actions": 4, "truncated": False,
+    }
+
+
+def test_success_after_recurrence_takes_precedence():
+    scenario = replace(C4_0000, blocked=frozenset(), start=(1, 1), goal=(1, 3))
+    result = run_c4(ScriptedController([3, 2, 3, 3]), scenario)
+    assert result.success and result.failure_type == "success"
+    assert result.steps == 4 and result.path_cost == 4
+    assert result.trajectory == [[1, 1], [1, 2], [1, 1], [1, 2], [1, 3]]
+    assert result.diagnostics == {
+        "invalid_actions": 0, "collision": False,
+        "attempted_actions": 4, "truncated": False,
+    }

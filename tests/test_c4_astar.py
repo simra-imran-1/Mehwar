@@ -52,3 +52,31 @@ def test_unreachable_and_start_at_goal():
     same = replace(C4_0000, goal=C4_0000.start)
     result = astar(same)
     assert result.found and result.steps == 0 and result.cost == 0
+
+
+@pytest.mark.parametrize("endpoint", ["start", "goal"])
+def test_blocked_endpoint_has_no_reference_path(endpoint):
+    scenario = replace(C4_0000, grid_size=3, start=(0, 0), goal=(2, 2),
+                       blocked=frozenset())
+    scenario = replace(scenario, blocked=frozenset({getattr(scenario, endpoint)}))
+    result = astar(scenario)
+    assert not result.found
+    assert result.steps == 0 and result.cost is None and result.trajectory == ()
+
+
+def test_blocked_start_at_goal_is_not_a_zero_step_success():
+    scenario = replace(C4_0000, start=(0, 0), goal=(0, 0),
+                       blocked=frozenset({(0, 0)}))
+    result = astar(scenario)
+    assert not result.found
+    assert result.steps == 0 and result.cost is None and result.trajectory == ()
+
+
+def test_equal_cost_paths_use_stable_action_insertion_order():
+    # The two diagonal routes around the center have identical total costs.
+    scenario = replace(C4_0000, grid_size=3, start=(1, 0), goal=(1, 2),
+                       blocked=frozenset({(1, 1)}))
+    result = astar(scenario)
+    assert result.found and result.steps == 2
+    assert result.cost == 2 * sqrt(2)
+    assert result.trajectory == ((1, 0), (0, 1), (1, 2))

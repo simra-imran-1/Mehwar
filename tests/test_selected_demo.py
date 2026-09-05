@@ -219,3 +219,124 @@ def test_cli_rejects_ambiguous_or_unselected_scenarios(args):
     with pytest.raises(SystemExit) as error:
         selected_demo.main(args)
     assert error.value.code == 2
+
+
+@pytest.mark.parametrize(
+    "scenario_ids",
+    [(), ("other",), ("C4-0000", "C4-0000"), ("C4-0001", "C4-0000")],
+)
+def test_api_rejects_invalid_selection_before_loading_checkpoint(
+    engineering_execution, scenario_ids, tmp_path,
+):
+    _, adapter, _, _ = engineering_execution
+    output = tmp_path / "rejected"
+    with pytest.raises(ValueError, match="exactly these two demos"):
+        selected_demo.reproduce_selected_demo(scenario_ids, output_dir=output)
+    adapter.assert_not_called()
+    assert not output.exists()
+
+
+@pytest.mark.parametrize(
+    ("status", "commit", "expected"),
+    [
+        ("", "a" * 40, "a" * 40),
+        (" M src/mehwar/selected_demo.py", "a" * 40, None),
+        ("M  src/mehwar/selected_demo.py", "a" * 40, None),
+        ("?? new_test.py", "a" * 40, None),
+        ("", "a" * 39, None),
+        ("", "g" * 40, None),
+    ],
+)
+def test_git_identity_requires_clean_tree_and_valid_commit(
+    monkeypatch, status, commit, expected,
+):
+    root = Path(selected_demo.__file__).resolve().parents[2]
+    responses = [str(root), status]
+    if not status:
+        responses.append(commit)
+    run = Mock(side_effect=[Mock(stdout=value) for value in responses])
+    monkeypatch.setattr(selected_demo.subprocess, "run", run)
+    assert selected_demo._repository_git_commit() == expected
+    assert run.call_args_list[1].args[0][-3:] == [
+        "status", "--porcelain", "--untracked-files=normal",
+    ]
+    assert run.call_count == len(responses)
+
+
+def test_git_identity_rejects_another_repository(monkeypatch, tmp_path):
+    run = Mock(return_value=Mock(stdout=str(tmp_path)))
+    monkeypatch.setattr(selected_demo.subprocess, "run", run)
+    assert selected_demo._repository_git_commit() is None
+    run.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "error",
+    [subprocess.CalledProcessError(128, "git"), subprocess.TimeoutExpired("git", 5)],
+)
+def test_git_command_failures_omit_identity(monkeypatch, error):
+    monkeypatch.setattr(selected_demo.subprocess, "run", Mock(side_effect=error))
+    assert selected_demo._repository_git_commit() is None
+
+
+def test_manifest_copies_valid_git_identity_and_rejects_conflicting_provenance(
+    engineering_execution, monkeypatch,
+):
+    results = selected_demo.reproduce_selected_demo(selected_demo.SELECTED_SCENARIO_IDS)
+    monkeypatch.setattr(selected_demo, "_repository_git_commit", lambda: "a" * 40)
+    assert selected_demo.build_manifest(results)["mehwar_git_commit"] == "a" * 40
+    results[1] = replace(
+        results[1], provenance={**results[1].provenance, "fresh_holdout": True},
+    )
+    with pytest.raises(ValueError, match="inconsistent provenance"):
+        selected_demo.build_manifest(results)
+
+
+def test_repeated_export_to_same_directory_is_byte_identical(
+    engineering_execution, tmp_path,
+):
+    output = tmp_path / "repeat"
+    selected_demo.reproduce_selected_demo(
+        selected_demo.SELECTED_SCENARIO_IDS, output_dir=output,
+    )
+    before = {path.name: path.read_bytes() for path in output.iterdir()}
+    selected_demo.reproduce_selected_demo(
+        selected_demo.SELECTED_SCENARIO_IDS, output_dir=output,
+    )
+    assert {path.name: path.read_bytes() for path in output.iterdir()} == before
+
+
+def test_second_scenario_evidence_failure_writes_no_partial_artifacts(
+    engineering_execution, monkeypatch, tmp_path,
+):
+    original_run = selected_demo.run_c4
+
+    def drifted_run(controller, scenario):
+        result = original_run(controller, scenario)
+        if scenario.scenario_id == "C4-0001":
+            return replace(result, steps=27)
+        return result
+
+    monkeypatch.setattr(selected_demo, "run_c4", drifted_run)
+    output = tmp_path / "failed"
+    with pytest.raises(ValueError, match="outcome mismatch"):
+        selected_demo.reproduce_selected_demo(
+            selected_demo.SELECTED_SCENARIO_IDS, output_dir=output,
+        )
+    assert not output.exists()
+
+
+def test_output_hard_link_cannot_overwrite_checkpoint(
+    engineering_execution, tmp_path,
+):
+    checkpoint, _, _, _ = engineering_execution
+    before = checkpoint.read_bytes()
+    output = tmp_path / "linked-output"
+    output.mkdir()
+    # A hard link has a different resolved path but is the very same file.
+    alias = output / "manifest.json"
+    alias.hardlink_to(checkpoint)
+    with pytest.raises(ValueError, match="overwrite the checkpoint"):
+        selected_demo.reproduce_selected_demo(("C4-0000",), output_dir=output)
+    assert checkpoint.read_bytes() == before
+    assert {path.name for path in output.iterdir()} == {"manifest.json"}

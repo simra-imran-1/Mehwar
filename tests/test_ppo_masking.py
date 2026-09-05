@@ -44,3 +44,27 @@ def test_bad_observation_shape_and_nonfinite_values(adapter, observation):
     observation["scalars"] = torch.full((4,), float("nan"))
     with pytest.raises(ValueError, match="scalars"):
         adapter.act(observation, [0])
+
+
+def test_duplicate_legal_ids_do_not_change_lowest_id_tie_break(adapter, observation):
+    assert adapter.act(observation, [3, 3, 1, 3, 1]) == 1
+
+
+def test_numpy_integer_legal_ids_return_a_python_integer(adapter, observation):
+    numpy = pytest.importorskip("numpy", reason="NumPy actions require the ppo extra")
+    action = adapter.act(observation, [numpy.int64(3), numpy.int32(1)])
+    assert type(action) is int
+    assert action == 1
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
+def test_nonfinite_logits_are_rejected_even_for_a_masked_action(
+    adapter, observation, value,
+):
+    class NonfiniteLogits(torch.nn.Module):
+        def forward(self, observation):
+            return torch.tensor([[0., 2., value, 2., 0., 0., 0., 0.]])
+
+    adapter._policy = NonfiniteLogits()
+    with pytest.raises(ValueError, match="Non-finite frozen actor logits"):
+        adapter.act(observation, [1, 3])

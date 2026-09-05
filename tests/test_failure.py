@@ -12,6 +12,10 @@ from mehwar.failure import PROTOCOL_ID, classify_failure
         (["A", "B", "C", "A"], "longer_loop"),
         (["A", "B", "C", "D"], "timeout_other"),
         ([], "timeout_other"),
+        (["A"], "timeout_other"),
+        (["A", "B"], "timeout_other"),
+        (["A", "A"], "longer_loop"),
+        (["A", "B", "C", "A", "B", "A", "C"], "two_cell_loop"),
     ],
 )
 def test_frozen_recurrence(trajectory, expected):
