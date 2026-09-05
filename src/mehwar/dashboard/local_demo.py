@@ -6,6 +6,7 @@ from mehwar.contracts import EvaluationResult
 from mehwar.dashboard.data import DashboardDataError
 
 CHECKPOINT_ENV = "MEHWAR_SEED33_CHECKPOINT"
+SELECTED_DEMO_SCENARIO_IDS = ("C4-0000", "C4-0001")
 
 
 def checkpoint_path_from_environment() -> str:
@@ -37,3 +38,26 @@ def run_local_c4_demo(scenario_id: str) -> EvaluationResult:
         ) from exc
     except (OSError, ValueError, RuntimeError) as exc:
         raise DashboardDataError(f"Verified C4 demo could not run: {exc}") from exc
+
+
+def run_selected_c4_batch() -> tuple[EvaluationResult, ...]:
+    """Execute the selected MVP demo set through the existing C4/T4 path."""
+    checkpoint = checkpoint_path_from_environment()
+    try:
+        from mehwar.controllers.ppo import MaskablePPOCheckpointAdapter
+        from mehwar.scenarios.c4 import C4_SCENARIOS
+        from mehwar.scenarios.c4_runner import run_c4
+
+        controller = MaskablePPOCheckpointAdapter(checkpoint)
+        return tuple(
+            run_c4(controller, C4_SCENARIOS[scenario_id])
+            for scenario_id in SELECTED_DEMO_SCENARIO_IDS
+        )
+    except ImportError as exc:
+        raise DashboardDataError(
+            'Local inference requires the ppo extra: pip install -e ".[ppo,dashboard]"'
+        ) from exc
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise DashboardDataError(
+            f"Selected C4 demo batch could not run: {exc}"
+        ) from exc
