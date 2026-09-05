@@ -8,11 +8,16 @@ version = "0.1.0"
 description = "Navigation-controller capability-boundary evaluation contracts"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = [
-    "streamlit>=1.37,<2",
-]
+dependencies = []
 
 [project.optional-dependencies]
+dashboard = [
+    "streamlit>=1.37,<2",
+]
+ppo = [
+    "numpy>=2,<3",
+    "torch>=2.10,<3",
+]
 dev = [
     "pytest>=8,<9",
     "ruff>=0.12,<1",
@@ -21,6 +26,7 @@ dev = [
 [tool.pytest.ini_options]
 addopts = "-ra"
 testpaths = ["tests"]
+markers = ["real_checkpoint: requires MEHWAR_SEED33_CHECKPOINT and the ppo extra"]
 
 [tool.ruff]
 line-length = 88
