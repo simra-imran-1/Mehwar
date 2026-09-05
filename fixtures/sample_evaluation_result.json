@@ -1,0 +1,30 @@
+{
+  "controller": "synthetic-sample-controller",
+  "controller_metadata": {
+    "kind": "engineering-sample",
+    "note": "Synthetic fixture only; not research evidence or real PPO behavior."
+  },
+  "scenario_id": "synthetic-sample-scenario-001",
+  "scenario_family": "engineering-sample",
+  "success": true,
+  "steps": 1,
+  "path_cost": 1.0,
+  "failure_type": null,
+  "trajectory": [
+    {"state_id": "synthetic-start"},
+    {"state_id": "synthetic-goal"}
+  ],
+  "reference_result": null,
+  "diagnostics": {
+    "invalid_actions": 0,
+    "sample_data": true
+  },
+  "configuration": {
+    "fixture_purpose": "contract-and-UI-development"
+  },
+  "provenance": {
+    "data_classification": "synthetic-engineering-sample",
+    "checkpoint_identity": null,
+    "research_evidence": false
+  }
+}
