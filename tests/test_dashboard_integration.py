@@ -93,7 +93,7 @@ assert 'mehwar.controllers._frozen_policy' not in sys.modules
 @pytest.mark.parametrize(
     ("scenario", "success", "steps", "status", "counts"),
     [
-        ("C4-0000", True, 16, "NO FAILURE OBSERVED IN SELECTED DEMO SET",
+        ("C4-0000", True, 16, "NO FAILURE OBSERVED IN SELECTED DEMO RUN",
          "1 selected run | 1 success | 0 observed failures"),
         ("C4-0001", False, 28, "LIVENESS DEGRADATION OBSERVED",
          "1 selected run | 0 successes | 1 observed failures | 1 two_cell_loop | "

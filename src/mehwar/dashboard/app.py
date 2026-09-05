@@ -8,6 +8,7 @@ from mehwar.contracts import EvaluationResult, JsonValue
 from mehwar.dashboard.data import (
     CURRENT_DEMO_LABEL,
     REFERENCE_UNAVAILABLE_MESSAGE,
+    SUPPLIED_CURRENT_DEMO_LABEL,
     SYNTHETIC_FIXTURE_LABEL,
     DashboardDataError,
     build_run_summary,
@@ -45,12 +46,13 @@ def main() -> None:
         "Navigation-controller capability-boundary and mission-liveness evaluation"
     )
 
-    result, source_label, batch_results = _load_selected_result()
+    result, source_label, batch_results, locally_executed = _load_selected_result()
     synthetic = is_synthetic_or_non_research(result.provenance)
     _render_evidence_banner(
         synthetic=synthetic,
         source_label=source_label,
         selected_demo=is_current_selected_demo(result.provenance),
+        locally_executed=locally_executed,
     )
     if batch_results is not None:
         _render_selected_demo_profile(batch_results)
@@ -66,7 +68,7 @@ def main() -> None:
 
 
 def _load_selected_result() -> tuple[
-    EvaluationResult, str, tuple[EvaluationResult, ...] | None
+    EvaluationResult, str, tuple[EvaluationResult, ...] | None, bool
 ]:
     st.sidebar.header("Evaluation input")
     input_mode = st.sidebar.radio(
@@ -76,21 +78,21 @@ def _load_selected_result() -> tuple[
     try:
         if input_mode == FIXTURE_INPUT:
             fixture_path = default_fixture_path()
-            return load_evaluation_result(fixture_path), fixture_path.name, None
+            return load_evaluation_result(fixture_path), fixture_path.name, None, False
         if input_mode == LOCAL_INPUT:
             return _load_local_demo()
         upload = st.sidebar.file_uploader("EvaluationResult JSON", type=["json"])
         if upload is None:
             st.info("Upload an EvaluationResult JSON file to display its evidence.")
             st.stop()
-        return load_evaluation_result(upload.getvalue()), upload.name, None
+        return load_evaluation_result(upload.getvalue()), upload.name, None, False
     except DashboardDataError as exc:
         st.error(str(exc))
         st.stop()
 
 
 def _load_local_demo() -> tuple[
-    EvaluationResult, str, tuple[EvaluationResult, ...] | None
+    EvaluationResult, str, tuple[EvaluationResult, ...] | None, bool
 ]:
     scenario_id = st.sidebar.selectbox("Selected C4 scenario", ["C4-0000", "C4-0001"])
     checkpoint = checkpoint_path_from_environment()
@@ -126,7 +128,7 @@ def _load_local_demo() -> tuple[
             "demo set."
         )
         st.stop()
-    return result, f"Local verified seed-33 / {scenario_id}", batch_results
+    return result, f"Local verified seed-33 / {scenario_id}", batch_results, True
 
 
 def _render_evidence_banner(
@@ -134,6 +136,7 @@ def _render_evidence_banner(
     synthetic: bool,
     source_label: str,
     selected_demo: bool = False,
+    locally_executed: bool = False,
 ) -> None:
     if synthetic:
         st.warning(
@@ -143,13 +146,19 @@ def _render_evidence_banner(
             "product-performance evidence."
         )
     elif selected_demo:
-        st.info(
-            f"### {CURRENT_DEMO_LABEL}\n"
-            "Selected development-validation scenario; not a fresh holdout. "
-            "This single run does not establish general controller performance."
-        )
-        if not source_label.startswith("Local verified seed-33 / "):
-            st.caption("Evidence classification is taken from the uploaded payload.")
+        if locally_executed:
+            st.info(
+                f"### {CURRENT_DEMO_LABEL}\n"
+                "Selected development-validation scenario; not a fresh holdout. "
+                "This single run does not establish general controller performance."
+            )
+        else:
+            st.info(
+                f"### {SUPPLIED_CURRENT_DEMO_LABEL}\n"
+                "The current-demo classification is taken from the uploaded payload "
+                "and its provenance. MEHWAR did not independently execute or verify "
+                "this run during this dashboard session."
+            )
     else:
         st.info(
             "Evidence classification is taken from the supplied payload. Inspect "
@@ -161,7 +170,13 @@ def _render_evidence_banner(
 def _render_selected_demo_counts(result: EvaluationResult) -> None:
     """Show single-run evidence beside a descriptive status, without a score."""
     profile = build_evidence_profile((result,))
-    st.markdown(f"**{profile.evidence_label}**")
+    if result.success:
+        evidence_label = "NO FAILURE OBSERVED IN SELECTED DEMO RUN"
+    elif result.failure_type in ("two_cell_loop", "longer_loop", "timeout_other"):
+        evidence_label = "LIVENESS DEGRADATION OBSERVED"
+    else:
+        evidence_label = "FAILURE OBSERVED IN SELECTED DEMO RUN"
+    st.markdown(f"**{evidence_label}**")
     successes = profile.mission_completions
     loop_count = profile.failure_type_counts.get("two_cell_loop", 0)
     collisions = profile.failure_type_counts.get("collision", 0)
