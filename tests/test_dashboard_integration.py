@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import sys
@@ -138,6 +139,54 @@ def test_real_local_dashboard_uses_evaluator_and_shared_renderer(
     assert any(counts in item.value for item in app.markdown)
     metrics = {item.label: item.value for item in app.metric}
     assert metrics["Steps"] == str(steps) and metrics["Scenario"] == scenario
+    assert app.title[0].value == "MEHWAR"
+    assert metrics["Mission outcome"] == (
+        "Mission completed" if success else "Mission not completed"
+    )
+    assert metrics["Failure type"] == result.failure_type
+    assert "Controller" not in metrics
+    text = [item.value for item in app.markdown]
+    assert (
+        "**Legal action selection does not by itself guarantee mission liveness.**"
+        in text
+    )
+    assert "Invalid actions" in text and "0" in text
+    assert "Controller path cost" in text and str(result.path_cost) in text
+    assert "A* reference steps" in text
+    assert str(result.reference_result["steps"]) in text
+    assert "A* reference cost" in text
+    assert str(result.reference_result["cost"]) in text
+    assert any(
+        item.value ==
+        "deterministic A* reliability reference under the shared grid contract"
+        for item in app.caption
+    )
+    banner = next(item.value for item in app.info if CURRENT_DEMO_LABEL in item.value)
+    assert "Selected development-validation scenario; not a fresh holdout." in banner
+    assert "single run does not establish general controller performance" in banner
+    expanders = {item.label: item for item in app.expander}
+    assert all(not item.proto.expanded for item in expanders.values())
+    assert "Evidence limitations — read before interpreting" in expanders
+    assert any(result.controller in item.value
+               for item in expanders["Controller metadata"].markdown)
+    for section, mapping in (
+        ("Controller metadata", result.controller_metadata),
+        ("Diagnostics", result.diagnostics),
+        ("Deterministic reference — full supplied record", result.reference_result),
+        ("Configuration", result.configuration), ("Provenance", result.provenance),
+    ):
+        assert json.loads(expanders[section].json[0].value) == mapping
+    # The chart precedes engineering details; sizing is the only spec change.
+    from mehwar.dashboard.visualization import build_c4_visualization, c4_chart_spec
+
+    chart = app.get("vega_lite_chart")[0]
+    expected_spec = c4_chart_spec(build_c4_visualization(result))
+    actual_spec = json.loads(chart.proto.spec)
+    assert actual_spec["layer"] == expected_spec["layer"]
+    assert actual_spec["encoding"] == expected_spec["encoding"]
+    elements = list(app.main)
+    assert elements.index(chart) < elements.index(expanders["Controller metadata"])
+    assert str(os.environ["MEHWAR_SEED33_CHECKPOINT"]) not in str(app.main)
     for limitation in DEFAULT_LIMITATIONS:
         assert any(limitation in item.value for item in app.warning)
     if scenario == "C4-0001":

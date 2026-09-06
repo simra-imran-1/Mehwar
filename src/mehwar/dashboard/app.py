@@ -41,9 +41,20 @@ def main() -> None:
         page_icon="M",
         layout="wide",
     )
+    # Keep the evidence and trajectory readable at ordinary desktop zoom.
+    st.html("""
+        <style>
+        .stMainBlockContainer { padding-top: 2rem; }
+        [data-testid="stMetricValue"] { font-size: 1.5rem; }
+        </style>
+    """)
     st.title("MEHWAR")
     st.caption(
         "Navigation-controller capability-boundary and mission-liveness evaluation"
+    )
+
+    st.markdown(
+        "**Legal action selection does not by itself guarantee mission liveness.**"
     )
 
     result, source_label, batch_results, locally_executed = _load_selected_result()
@@ -54,17 +65,30 @@ def main() -> None:
         selected_demo=is_current_selected_demo(result.provenance),
         locally_executed=locally_executed,
     )
-    if batch_results is not None:
-        _render_selected_demo_profile(batch_results)
     if is_current_selected_demo(result.provenance):
         _render_selected_demo_counts(result)
     _render_run_summary(result)
     _render_trajectory(result)
-    _render_reference(result)
-    _render_json_section("Diagnostics", result.diagnostics)
-    _render_json_section("Configuration", result.configuration)
-    _render_provenance(result.provenance)
-    _render_limitations(synthetic=synthetic)
+    with st.expander("Controller metadata", expanded=False):
+        st.write(f"Controller: {result.controller}")
+        st.write(f"Scenario family: {result.scenario_family}")
+        st.write(f"Trajectory records: {len(result.trajectory)}")
+        _render_mapping(
+            result.controller_metadata, empty_message="No metadata supplied."
+        )
+    with st.expander("Diagnostics", expanded=False):
+        _render_json_section("Diagnostics", result.diagnostics)
+    with st.expander("Deterministic reference — full supplied record", expanded=False):
+        _render_reference(result)
+    with st.expander("Configuration", expanded=False):
+        _render_json_section("Configuration", result.configuration)
+    with st.expander("Provenance", expanded=False):
+        _render_provenance(result.provenance)
+    with st.expander("Evidence limitations — read before interpreting", expanded=False):
+        _render_limitations(synthetic=synthetic)
+    if batch_results is not None:
+        with st.expander("Selected demo set evidence profile", expanded=False):
+            _render_selected_demo_profile(batch_results)
 
 
 def _load_selected_result() -> tuple[
@@ -140,7 +164,7 @@ def _render_evidence_banner(
 ) -> None:
     if synthetic:
         st.warning(
-            f"### {SYNTHETIC_FIXTURE_LABEL}\n"
+            f"**{SYNTHETIC_FIXTURE_LABEL}**\n\n"
             "This payload is labeled synthetic/non-research evidence. It must not "
             "be interpreted as PPO, C4, research-replication, safety, or "
             "product-performance evidence."
@@ -148,13 +172,13 @@ def _render_evidence_banner(
     elif selected_demo:
         if locally_executed:
             st.info(
-                f"### {CURRENT_DEMO_LABEL}\n"
+                f"**{CURRENT_DEMO_LABEL}**\n\n"
                 "Selected development-validation scenario; not a fresh holdout. "
                 "This single run does not establish general controller performance."
             )
         else:
             st.info(
-                f"### {SUPPLIED_CURRENT_DEMO_LABEL}\n"
+                f"**{SUPPLIED_CURRENT_DEMO_LABEL}**\n\n"
                 "The current-demo classification is taken from the uploaded payload "
                 "and its provenance. MEHWAR did not independently execute or verify "
                 "this run during this dashboard session."
@@ -164,7 +188,7 @@ def _render_evidence_banner(
             "Evidence classification is taken from the supplied payload. Inspect "
             "provenance and limitations before drawing conclusions."
         )
-    st.caption(f"Selected input: `{source_label}`")
+    st.sidebar.caption(f"Selected input: `{source_label}`")
 
 
 def _render_selected_demo_counts(result: EvaluationResult) -> None:
@@ -248,25 +272,33 @@ def _format_failure_counts(profile: EvidenceProfile) -> str:
 
 def _render_run_summary(result: EvaluationResult) -> None:
     summary = build_run_summary(result)
-    st.subheader("Run summary")
-
     first_row = st.columns(4)
-    first_row[0].metric("Controller", summary.controller)
-    first_row[1].metric("Scenario", summary.scenario_id)
-    first_row[2].metric("Scenario family", summary.scenario_family)
-    first_row[3].metric("Mission outcome", summary.mission_outcome)
-
-    second_row = st.columns(4)
-    second_row[0].metric("Steps", str(summary.steps))
-    second_row[1].metric("Path cost", f"{summary.path_cost:g}")
-    second_row[2].metric(
+    first_row[0].metric("Scenario", summary.scenario_id)
+    first_row[1].metric("Mission outcome", summary.mission_outcome)
+    first_row[2].metric("Steps", str(summary.steps))
+    first_row[3].metric(
         "Failure type",
         summary.failure_type if summary.failure_type is not None else "Not supplied",
     )
-    second_row[3].metric("Trajectory records", str(len(result.trajectory)))
 
-    st.markdown("**Controller metadata**")
-    _render_mapping(result.controller_metadata, empty_message="No metadata supplied.")
+    context = st.columns(4)
+    context[0].markdown("Invalid actions")
+    context[0].write(str(result.diagnostics.get("invalid_actions", "Not supplied")))
+    context[1].markdown("Controller path cost")
+    context[1].write(str(summary.path_cost))
+    reference = result.reference_result
+    if reference is not None and reference.get("planner") == "A*":
+        context[2].markdown("A* reference steps")
+        context[2].write(str(reference.get("steps", "Not supplied")))
+        context[3].markdown("A* reference cost")
+        context[3].write(str(reference.get("cost", "Not supplied")))
+        st.caption(
+            "deterministic A* reliability reference under the shared grid contract"
+        )
+    elif reference is None:
+        st.info(REFERENCE_UNAVAILABLE_MESSAGE)
+    else:
+        st.caption("Reference data is available in the full supplied record below.")
 
 
 def _render_trajectory(result: EvaluationResult) -> None:
@@ -316,13 +348,6 @@ def _render_trajectory(result: EvaluationResult) -> None:
 
 
 def _render_c4_trajectory(visualization) -> None:
-    outcome = (
-        "Mission completed"
-        if visualization.mission_completed
-        else "Mission not completed"
-    )
-    failure_type = visualization.supplied_failure_type or "Not supplied"
-    st.markdown(f"**Outcome:** {outcome} | **Supplied failure type:** {failure_type}")
     st.caption(
         "Scientific positions are (row, col); the chart maps x = col and y = row. "
         "Blue: learned-controller path. Gray dashed: supplied deterministic A* "
@@ -330,7 +355,9 @@ def _render_c4_trajectory(visualization) -> None:
         "goal. Red rings: repeated cells shown only for a supplied two_cell_loop "
         "result."
     )
-    st.vega_lite_chart(c4_chart_spec(visualization), width="stretch")
+    spec = c4_chart_spec(visualization)
+    spec["height"] = 380  # Presentation sizing only; all scientific layers stay intact.
+    st.vega_lite_chart(spec, width="stretch")
 
 
 def _render_reference(result: EvaluationResult) -> None:
