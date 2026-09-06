@@ -7,6 +7,7 @@ from unittest.mock import Mock
 
 import pytest
 from streamlit.testing.v1 import AppTest
+from test_dashboard_app import assert_no_run_content, presentation
 
 from mehwar import evaluator
 from mehwar.dashboard import app as dashboard_app
@@ -30,7 +31,7 @@ def test_missing_checkpoint_has_error_and_no_fixture_fallback(monkeypatch):
     app.radio[0].set_value(dashboard_app.LOCAL_INPUT).run()
     assert not app.exception
     assert any("MEHWAR_SEED33_CHECKPOINT" in error.value for error in app.error)
-    assert not app.metric
+    assert_no_run_content(app)
     assert not any(SYNTHETIC_FIXTURE_LABEL in item.value for item in app.warning)
     with pytest.raises(DashboardDataError, match="MEHWAR_SEED33_CHECKPOINT"):
         run_local_c4_demo("C4-0000")
@@ -43,7 +44,8 @@ def test_bad_checkpoint_run_has_error_and_no_fixture_fallback(monkeypatch, tmp_p
     app = AppTest.from_file(str(APP_PATH)).run()
     app.radio[0].set_value(dashboard_app.LOCAL_INPUT).run()
     app.button[0].click().run()
-    assert not app.exception and not app.metric
+    assert not app.exception
+    assert_no_run_content(app)
     assert any("SHA256" in error.value for error in app.error)
     assert not any(SYNTHETIC_FIXTURE_LABEL in item.value for item in app.warning)
 
@@ -51,7 +53,8 @@ def test_bad_checkpoint_run_has_error_and_no_fixture_fallback(monkeypatch, tmp_p
 def test_upload_mode_waits_for_file_without_fixture_fallback():
     app = AppTest.from_file(str(APP_PATH)).run()
     app.radio[0].set_value(dashboard_app.UPLOAD_INPUT).run()
-    assert not app.exception and not app.metric
+    assert not app.exception
+    assert_no_run_content(app)
     assert any("Upload an EvaluationResult" in info.value for info in app.info)
 
 
@@ -137,25 +140,25 @@ def test_real_local_dashboard_uses_evaluator_and_shared_renderer(
     assert not any(SYNTHETIC_FIXTURE_LABEL in item.value for item in app.warning)
     assert any(status in item.value for item in app.markdown)
     assert any(counts in item.value for item in app.markdown)
-    metrics = {item.label: item.value for item in app.metric}
-    assert metrics["Steps"] == str(steps) and metrics["Scenario"] == scenario
+    rendered = presentation(app)
+    assert rendered.fields["Steps"] == str(steps)
+    assert f"Scenario {scenario}" in rendered.text
     assert app.title[0].value == "MEHWAR"
-    assert metrics["Mission outcome"] == (
-        "Mission completed" if success else "Mission not completed"
-    )
-    assert metrics["Failure type"] == result.failure_type
-    assert "Controller" not in metrics
+    outcome = "Mission completed" if success else "Mission not completed"
+    assert outcome in rendered.text
+    assert rendered.fields["Failure type"] == result.failure_type
+    assert rendered.fields["Controller"] == result.controller
     text = [item.value for item in app.markdown]
     assert (
         "**Legal action selection does not by itself guarantee mission liveness.**"
         in text
     )
-    assert "Invalid actions" in text and "0" in text
-    assert "Controller path cost" in text and str(result.path_cost) in text
-    assert "A* reference steps" in text
-    assert str(result.reference_result["steps"]) in text
-    assert "A* reference cost" in text
-    assert str(result.reference_result["cost"]) in text
+    assert rendered.fields["Invalid actions"] == "0"
+    assert rendered.fields["Controller path cost"] == str(result.path_cost)
+    assert rendered.fields["A* reference steps"] == str(
+        result.reference_result["steps"]
+    )
+    assert rendered.fields["A* reference cost"] == str(result.reference_result["cost"])
     assert any(
         item.value ==
         "deterministic A* reliability reference under the shared grid contract"
@@ -176,7 +179,7 @@ def test_real_local_dashboard_uses_evaluator_and_shared_renderer(
         ("Configuration", result.configuration), ("Provenance", result.provenance),
     ):
         assert json.loads(expanders[section].json[0].value) == mapping
-    # The chart precedes engineering details; sizing is the only spec change.
+    # The chart precedes engineering details; layers and encodings are unchanged.
     from mehwar.dashboard.visualization import build_c4_visualization, c4_chart_spec
 
     chart = app.get("vega_lite_chart")[0]
@@ -200,4 +203,4 @@ def test_real_local_dashboard_uses_evaluator_and_shared_renderer(
     assert common_evaluate.call_count == 1 and reset_count == 1
     other = "C4-0001" if scenario == "C4-0000" else "C4-0000"
     app.selectbox[0].set_value(other).run()
-    assert not app.metric  # do not display the previous scenario's result
+    assert_no_run_content(app)  # do not display the previous scenario's result

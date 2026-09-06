@@ -2,6 +2,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 from streamlit.testing.v1 import AppTest
+from test_dashboard_app import presentation
 
 from mehwar.contracts import EvaluationResult
 from mehwar.dashboard import app as dashboard_app
@@ -85,4 +86,4 @@ def test_selected_batch_profile_requires_click_and_preserves_individual_results(
     assert batch_runner.call_count == 1
     app.selectbox[0].set_value("C4-0001").run()
     assert batch_runner.call_count == 1
-    assert any(metric.value == "C4-0001" for metric in app.metric)
+    assert "Scenario C4-0001" in presentation(app).text

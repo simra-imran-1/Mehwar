@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from html import escape
+
 import streamlit as st
 
 from mehwar.contracts import EvaluationResult, JsonValue
@@ -24,6 +26,7 @@ from mehwar.dashboard.local_demo import (
     run_local_c4_demo,
     run_selected_c4_batch,
 )
+from mehwar.dashboard.theme import WORKSPACE_CSS
 from mehwar.dashboard.visualization import build_c4_visualization, c4_chart_spec
 from mehwar.evidence import EvidenceProfile, build_evidence_profile
 from mehwar.reporting import DEFAULT_LIMITATIONS
@@ -41,51 +44,81 @@ def main() -> None:
         page_icon="M",
         layout="wide",
     )
-    # Keep the evidence and trajectory readable at ordinary desktop zoom.
-    st.html("""
-        <style>
-        .stMainBlockContainer { padding-top: 2rem; }
-        [data-testid="stMetricValue"] { font-size: 1.5rem; }
-        </style>
-    """)
-    st.title("MEHWAR")
-    st.caption(
-        "Navigation-controller capability-boundary and mission-liveness evaluation"
-    )
-
-    st.markdown(
-        "**Legal action selection does not by itself guarantee mission liveness.**"
-    )
+    st.html(WORKSPACE_CSS)
+    with st.container(key="identity"):
+        brand, purpose, stage = st.columns([1, 3.4, 1.4], vertical_alignment="center")
+        with brand:
+            st.title("MEHWAR")
+        with purpose:
+            st.markdown(
+                '<div class="mw-descriptor">Navigation-controller capability-boundary '
+                "and mission-liveness evaluation</div>",
+                unsafe_allow_html=True,
+            )
+        with stage:
+            st.markdown(
+                '<div class="mw-prototype">Research-backed<br>'
+                "Functional prototype</div>",
+                unsafe_allow_html=True,
+            )
+    with st.container(key="thesis"):
+        st.markdown(
+            "**Legal action selection does not by itself guarantee mission liveness.**"
+        )
 
     result, source_label, batch_results, locally_executed = _load_selected_result()
     synthetic = is_synthetic_or_non_research(result.provenance)
-    _render_evidence_banner(
-        synthetic=synthetic,
-        source_label=source_label,
-        selected_demo=is_current_selected_demo(result.provenance),
-        locally_executed=locally_executed,
-    )
-    if is_current_selected_demo(result.provenance):
-        _render_selected_demo_counts(result)
-    _render_run_summary(result)
-    _render_trajectory(result)
-    with st.expander("Controller metadata", expanded=False):
-        st.write(f"Controller: {result.controller}")
-        st.write(f"Scenario family: {result.scenario_family}")
-        st.write(f"Trajectory records: {len(result.trajectory)}")
-        _render_mapping(
-            result.controller_metadata, empty_message="No metadata supplied."
+    with st.container(key="evidence-banner"):
+        _render_evidence_banner(
+            synthetic=synthetic,
+            source_label=source_label,
+            selected_demo=is_current_selected_demo(result.provenance),
+            locally_executed=locally_executed,
         )
-    with st.expander("Diagnostics", expanded=False):
-        _render_json_section("Diagnostics", result.diagnostics)
-    with st.expander("Deterministic reference — full supplied record", expanded=False):
-        _render_reference(result)
-    with st.expander("Configuration", expanded=False):
-        _render_json_section("Configuration", result.configuration)
-    with st.expander("Provenance", expanded=False):
-        _render_provenance(result.provenance)
-    with st.expander("Evidence limitations — read before interpreting", expanded=False):
-        _render_limitations(synthetic=synthetic)
+    with st.container(key="evidence-workspace"):
+        trajectory, reading = st.columns([1.85, 1], gap="large")
+        with trajectory:
+            with st.container(key="trajectory-panel"):
+                _render_trajectory(result)
+        with reading:
+            with st.container(key="run-summary"):
+                raw_counts = _render_run_summary(result)
+            with st.container(key="reference-context"):
+                _render_reference_context(result)
+    if raw_counts is not None:
+        with st.container(key="raw-context"):
+            st.write(raw_counts)
+    st.markdown(
+        '<div class="mw-record-heading"><h2>Evidence record</h2>'
+        "<p>Inspect the supplied records, provenance and interpretation limits.</p>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    detail_left, detail_right = st.columns(2)
+    with detail_left:
+        with st.expander("Controller metadata", expanded=False):
+            st.write(f"Controller: {result.controller}")
+            st.write(f"Scenario family: {result.scenario_family}")
+            st.write(f"Trajectory records: {len(result.trajectory)}")
+            _render_mapping(
+                result.controller_metadata, empty_message="No metadata supplied."
+            )
+        with st.expander("Diagnostics", expanded=False):
+            _render_json_section("Diagnostics", result.diagnostics)
+        with st.expander(
+            "Deterministic reference — full supplied record", expanded=False
+        ):
+            _render_reference(result)
+    with detail_right:
+        with st.expander("Configuration", expanded=False):
+            _render_json_section("Configuration", result.configuration)
+        with st.expander("Provenance", expanded=False):
+            _render_provenance(result.provenance)
+        with st.expander(
+            "Evidence limitations — read before interpreting",
+            expanded=False,
+        ):
+            _render_limitations(synthetic=synthetic)
     if batch_results is not None:
         with st.expander("Selected demo set evidence profile", expanded=False):
             _render_selected_demo_profile(batch_results)
@@ -94,6 +127,10 @@ def main() -> None:
 def _load_selected_result() -> tuple[
     EvaluationResult, str, tuple[EvaluationResult, ...] | None, bool
 ]:
+    st.sidebar.markdown(
+        '<div class="mw-rail-brand">MEHWAR<strong>Evaluation workspace</strong></div>',
+        unsafe_allow_html=True,
+    )
     st.sidebar.header("Evaluation input")
     input_mode = st.sidebar.radio(
         "Input source",
@@ -120,7 +157,7 @@ def _load_local_demo() -> tuple[
 ]:
     scenario_id = st.sidebar.selectbox("Selected C4 scenario", ["C4-0000", "C4-0001"])
     checkpoint = checkpoint_path_from_environment()
-    if st.sidebar.button("Run verified C4 demo"):
+    if st.sidebar.button("Run verified C4 demo", type="primary"):
         # Never retain an old result if a new execution fails.
         st.session_state.pop("local_c4_result", None)
         with st.spinner("Running the selected C4 demo locally..."):
@@ -191,7 +228,7 @@ def _render_evidence_banner(
     st.sidebar.caption(f"Selected input: `{source_label}`")
 
 
-def _render_selected_demo_counts(result: EvaluationResult) -> None:
+def _render_selected_demo_counts(result: EvaluationResult) -> str:
     """Show single-run evidence beside a descriptive status, without a score."""
     profile = build_evidence_profile((result,))
     if result.success:
@@ -200,14 +237,16 @@ def _render_selected_demo_counts(result: EvaluationResult) -> None:
         evidence_label = "LIVENESS DEGRADATION OBSERVED"
     else:
         evidence_label = "FAILURE OBSERVED IN SELECTED DEMO RUN"
-    st.markdown(f"**{evidence_label}**")
+    status_key = "evidence-status" if result.success else "evidence-status-observed"
+    with st.container(key=status_key):
+        st.markdown(f"**{evidence_label}**")
     successes = profile.mission_completions
     loop_count = profile.failure_type_counts.get("two_cell_loop", 0)
     collisions = profile.failure_type_counts.get("collision", 0)
     invalid = (
         profile.invalid_actions_total if profile.invalid_actions_complete else "unknown"
     )
-    st.write(
+    return (
         f"1 selected run | {successes} {'success' if successes else 'successes'} | "
         f"{profile.mission_failures} observed failures | {loop_count} two_cell_loop | "
         f"{collisions} collisions | {invalid} invalid actions"
@@ -270,30 +309,58 @@ def _format_failure_counts(profile: EvidenceProfile) -> str:
     )
 
 
-def _render_run_summary(result: EvaluationResult) -> None:
+def _render_run_summary(result: EvaluationResult) -> str | None:
+    """Present supplied values; styling never assigns a scientific classification."""
     summary = build_run_summary(result)
-    first_row = st.columns(4)
-    first_row[0].metric("Scenario", summary.scenario_id)
-    first_row[1].metric("Mission outcome", summary.mission_outcome)
-    first_row[2].metric("Steps", str(summary.steps))
-    first_row[3].metric(
-        "Failure type",
-        summary.failure_type if summary.failure_type is not None else "Not supplied",
+    st.markdown(
+        '<div class="mw-eyebrow">Controller evidence · Mission outcome</div>'
+        f'<h2 class="mw-outcome">{escape(summary.mission_outcome)}</h2>',
+        unsafe_allow_html=True,
     )
+    raw_counts = (
+        _render_selected_demo_counts(result)
+        if is_current_selected_demo(result.provenance)
+        else None
+    )
+    invalid = result.diagnostics.get("invalid_actions", "Not supplied")
+    failure = (
+        summary.failure_type if summary.failure_type is not None else "Not supplied"
+    )
+    st.markdown(
+        '<dl class="mw-measures">'
+        f"<div><dt>Steps</dt><dd>{summary.steps}</dd></div>"
+        f"<div><dt>Invalid actions</dt><dd>{escape(str(invalid))}</dd></div></dl>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<dl class="mw-record">'
+        f"<div><dt>Failure type</dt><dd>{escape(failure)}</dd></div>"
+        "<div><dt>Controller path cost</dt>"
+        f"<dd>{escape(str(summary.path_cost))}</dd></div>"
+        "<div><dt>Controller</dt>"
+        f'<dd class="mw-identity">{escape(summary.controller)}</dd></div></dl>',
+        unsafe_allow_html=True,
+    )
+    return raw_counts
 
-    context = st.columns(4)
-    context[0].markdown("Invalid actions")
-    context[0].write(str(result.diagnostics.get("invalid_actions", "Not supplied")))
-    context[1].markdown("Controller path cost")
-    context[1].write(str(summary.path_cost))
+
+def _render_reference_context(result: EvaluationResult) -> None:
     reference = result.reference_result
+    st.markdown(
+        '<div class="mw-eyebrow">Reference context</div>'
+        '<h3 class="mw-reference-title">Deterministic reference</h3>',
+        unsafe_allow_html=True,
+    )
     if reference is not None and reference.get("planner") == "A*":
-        context[2].markdown("A* reference steps")
-        context[2].write(str(reference.get("steps", "Not supplied")))
-        context[3].markdown("A* reference cost")
-        context[3].write(str(reference.get("cost", "Not supplied")))
         st.caption(
             "deterministic A* reliability reference under the shared grid contract"
+        )
+        st.markdown(
+            '<dl class="mw-reference"><div><dt>A* reference steps</dt>'
+            f"<dd>{escape(str(reference.get('steps', 'Not supplied')))}</dd></div>"
+            "<div><dt>A* reference cost</dt>"
+            f"<dd>{escape(str(reference.get('cost', 'Not supplied')))}</dd></div></dl>",
+            unsafe_allow_html=True,
         )
     elif reference is None:
         st.info(REFERENCE_UNAVAILABLE_MESSAGE)
@@ -302,7 +369,13 @@ def _render_run_summary(result: EvaluationResult) -> None:
 
 
 def _render_trajectory(result: EvaluationResult) -> None:
-    st.subheader("Trajectory evidence")
+    st.markdown(
+        '<div class="mw-panel-heading"><div>'
+        '<div class="mw-eyebrow">Trajectory evidence</div>'
+        f"<h2>Scenario {escape(result.scenario_id)}</h2></div>"
+        f'<span class="mw-tag">{escape(result.scenario_family)}</span></div>',
+        unsafe_allow_html=True,
+    )
     c4_visualization = build_c4_visualization(result)
     if c4_visualization is not None:
         _render_c4_trajectory(c4_visualization)
@@ -348,16 +421,41 @@ def _render_trajectory(result: EvaluationResult) -> None:
 
 
 def _render_c4_trajectory(visualization) -> None:
+    spec = c4_chart_spec(visualization)
+    # Presentation only: preserve every layer, point, encoding and tooltip.
+    spec["height"] = 420
+    spec["background"] = "#ffffff"
+    spec["config"] = {
+        "view": {"stroke": None},
+        "axis": {
+            "labelColor": "#546974",
+            "titleColor": "#304e60",
+            "gridColor": "#e5ebed",
+            "domainColor": "#cad5da",
+            "tickColor": "#cad5da",
+            "labelFont": "Arial",
+            "titleFont": "Arial",
+            "labelFontSize": 11,
+            "titleFontSize": 12,
+            "titlePadding": 12,
+        },
+    }
+    st.vega_lite_chart(spec, width="stretch", theme=None)
+    st.markdown(
+        '<div class="mw-legend" aria-label="Trajectory legend">'
+        '<span><i aria-hidden="true"></i>Learned-controller path</span>'
+        '<span><i class="reference" aria-hidden="true"></i>Supplied A* reference</span>'
+        '<span><i class="obstacle" aria-hidden="true"></i>Obstacles</span>'
+        '<span><i class="start" aria-hidden="true"></i>Start</span>'
+        '<span><i class="goal" aria-hidden="true">+</i>Goal</span>'
+        '<span><i class="recurrence" aria-hidden="true"></i>Repeated cells</span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
     st.caption(
         "Scientific positions are (row, col); the chart maps x = col and y = row. "
-        "Blue: learned-controller path. Gray dashed: supplied deterministic A* "
-        "reference. Dark squares: obstacles. Green diamond: start. Orange cross: "
-        "goal. Red rings: repeated cells shown only for a supplied two_cell_loop "
-        "result."
+        "Red rings show repeated cells only for a supplied two_cell_loop result."
     )
-    spec = c4_chart_spec(visualization)
-    spec["height"] = 380  # Presentation sizing only; all scientific layers stay intact.
-    st.vega_lite_chart(spec, width="stretch")
 
 
 def _render_reference(result: EvaluationResult) -> None:
