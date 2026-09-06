@@ -1,6 +1,6 @@
-# MEHWAR LIVE STATE — FINAL T6/T9 INTEGRATION GATE
+# MEHWAR LIVE STATE — FINAL T14 TECHNICAL GATE
 
-**Last updated:** 2026-09-05 PKT
+**Last updated:** 2026-09-06 PKT
 
 **Repository:** `simra-imran-1/Mehwar`
 
@@ -38,7 +38,7 @@ Only integration-demo is modified. Main and both source branches remain unchange
 | T11 External feedback | NOT VERIFIED | No external response state established by this gate |
 | T12 Application | NOT VERIFIED | Outside this gate |
 | T13 Demo/screenshots | IN PROGRESS | Integrated C4-0000 and C4-0001 dashboard screenshots captured and manually reviewed; final 45–60 s recording still pending |
-| T14 Red-team | NOT DONE | Requires independent integrated-candidate review |
+| T14 Red-team | DONE | Independent technical review found one high evaluator-integrity defect; authorized critical-only defensive-copy fix integrated and verified at 130 passed, zero skipped, with selected-demo reproduction and checkpoint integrity unchanged |
 | T15 Submission | NOT DONE | Depends on subsequent gates |
 
 ## Integrated execution and dashboard flow
@@ -67,6 +67,18 @@ Real locally executed selected runs display `CURRENT MEHWAR SELECTED DEMO RUN`, 
 - The pytest basetemp workaround changed no MEHWAR source, scientific semantics, checkpoint contents, or filesystem ACLs.
 - Independent `python scripts/run_selected_demo.py --all --output-dir outputs/selected_demo_final` passed for both selected development-validation scenarios.
 - Manual integrated dashboard review confirmed the T9 coordinate convention `x = col`, `y = row`, obstacles/start/goal, learned trajectory, supplied deterministic A* trajectory, and C4-0001 recurrence markers.
+- T14 evaluator-integrity patch integrated at `872b90564a086ec3e56288f46c03b88f3397c0e7`.
+- `_execute_c4()` now preserves an immutable authoritative legal-action snapshot and passes the controller a separate mutable copy; controller-side mutation cannot change the evaluator's legality oracle.
+- Append-mutation regression: an injected illegal action remains rejected as collision with zero completed steps and one invalid action.
+- Remove-mutation regression: removing a genuinely legal action from the controller-visible copy does not make it illegal to the evaluator; the one-step legal goal transition succeeds.
+- Final integrated suite: **130 passed, zero skipped**.
+- Ruff PASS; `git diff --check` PASS.
+- Selected-demo helper PASS and independent reproduction PASS.
+- C4-0000 remained `success / 16 steps / 0 invalid actions`; A* remained `15 / 16.65685424949238`.
+- C4-0001 remained `two_cell_loop / 28 steps / 0 invalid actions`; A* remained `14 / 16.071067811865476`.
+- The four scenario JSON/TXT reproduction artifacts were byte-identical to the pre-T14 baseline; manifest identity was excluded because the MEHWAR Git SHA changed.
+- Dashboard AppTest spot-check on the reviewed T14 commit passed for both selected real scenarios.
+- External checkpoint SHA256 after final integrated verification remained: `c91d30711aa91957554dfa92b152d2a1d1e14a7b43fa01237722c54cb0acfaaf`.
 
 Runtime: Python 3.13.6, NumPy 2.3.4, PyTorch 2.10.0+cpu, Streamlit 1.63.0, pytest 8.4.2. Runtime versions are distinct from the checkpoint's SB3 2.9.0 metadata.
 
@@ -102,4 +114,4 @@ Movement remains static 8-connected destination-cell-only legality, corner cutti
 
 Controlled 2-D grid-based mission-routing abstraction. Not physical flight validation. Not deployment approval. Not safety certification. Not evidence of general learned-controller or planner superiority.
 
-No blocker remains for T10. T6 and T9 are integrated and the final checkpoint-backed integration/reproduction gate passed. Remaining pre-submission work is T12 application completion, T13 final 45–60 s demo recording/screenshots, T14 independent jury/technical red-team, any critical-only fixes, and T15 submission. The current prototype remains a controlled 2-D grid-based mission-routing abstraction: not physical flight validation, deployment approval, safety certification, or evidence of general learned-controller/planner superiority.
+No blocker remains for T14. The authorized evaluator-integrity fix is integrated and verified without changing scientific semantics or the selected hero evidence. Remaining pre-submission work is T12 application completion, T13 final 45–60 s demo recording/screenshots, and T15 submission. Lower-priority red-team findings remain explicitly deferred and are not authorized pre-submission scope unless a direct blocker emerges.
