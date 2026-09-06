@@ -80,11 +80,12 @@ def _execute_c4(
     success = position == scenario.goal
     while not success and len(trajectory) - 1 < scenario.episode_budget:
         allowed = legal_actions(scenario, position)
+        authoritative_allowed = frozenset(allowed)
         observation = build_observation(scenario, position, previous_action)
-        action = controller.act(observation, allowed)
+        action = controller.act(observation, list(allowed))
         attempted_actions += 1
         if isinstance(action, bool) or not isinstance(action, Integral) or (
-            action not in allowed
+            action not in authoritative_allowed
         ):
             invalid_actions += 1
             collision = True

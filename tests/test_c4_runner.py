@@ -81,6 +81,42 @@ def test_invalid_action_is_collision_separate_diagnostic(action):
     }
 
 
+def test_appending_illegal_action_cannot_change_evaluator_legality():
+    class AppendController(ScriptedController):
+        def act(self, observation, legal_actions=None):
+            assert isinstance(legal_actions, list)
+            assert 2 not in legal_actions
+            legal_actions.append(2)
+            return 2
+
+    result = run_c4(AppendController([]), C4_0001)
+    assert result.success is False
+    assert result.failure_type == "collision"
+    assert result.steps == 0 and result.path_cost == 0
+    assert result.trajectory == [[8, 9]]
+    assert result.diagnostics["invalid_actions"] == 1
+    assert result.diagnostics["collision"] is True
+
+
+def test_removing_legal_action_cannot_change_evaluator_legality():
+    class RemoveController(ScriptedController):
+        def act(self, observation, legal_actions=None):
+            assert isinstance(legal_actions, list)
+            assert 3 in legal_actions
+            legal_actions.remove(3)
+            return 3
+
+    scenario = replace(C4_0000, blocked=frozenset(), start=(0, 0),
+                       goal=(0, 1), optimal_steps=1, optimal_cost=1.0)
+    result = run_c4(RemoveController([]), scenario)
+    assert result.success is True
+    assert result.failure_type == "success"
+    assert result.steps == 1 and result.path_cost == 1.0
+    assert result.trajectory == [[0, 0], [0, 1]]
+    assert result.diagnostics["invalid_actions"] == 0
+    assert result.diagnostics["collision"] is False
+
+
 def test_runner_resets_and_succeeds_on_final_budget_step():
     scenario = replace(C4_0000, blocked=frozenset(), start=(0, 0),
                        goal=(10, 10), optimal_steps=1)
