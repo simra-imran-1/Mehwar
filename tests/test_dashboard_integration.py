@@ -153,12 +153,20 @@ def test_real_local_dashboard_uses_evaluator_and_shared_renderer(
         "**Legal action selection does not by itself guarantee mission liveness.**"
         in text
     )
+    assert any(
+        item.value
+        == "0 invalid actions · mission still failed through legal recurrence"
+        for item in app.caption
+    ) is (not success)
+    assert "STRUCTURED C4 SCENARIO" in rendered.text
     assert rendered.fields["Invalid actions"] == "0"
-    assert rendered.fields["Controller path cost"] == str(result.path_cost)
+    assert rendered.fields["Controller path cost"] == f"{result.path_cost:.3f}"
     assert rendered.fields["A* reference steps"] == str(
         result.reference_result["steps"]
     )
-    assert rendered.fields["A* reference cost"] == str(result.reference_result["cost"])
+    assert rendered.fields["A* reference cost"] == (
+        f"{result.reference_result['cost']:.3f}"
+    )
     assert any(
         item.value ==
         "deterministic A* reliability reference under the shared grid contract"
@@ -172,6 +180,14 @@ def test_real_local_dashboard_uses_evaluator_and_shared_renderer(
     assert "Evidence limitations — read before interpreting" in expanders
     assert any(result.controller in item.value
                for item in expanders["Controller metadata"].markdown)
+    assert any(
+        f"Controller path cost (supplied): {result.path_cost}" in item.value
+        for item in expanders["Controller metadata"].markdown
+    )
+    assert any(
+        f"Scenario family: {result.scenario_family}" in item.value
+        for item in expanders["Controller metadata"].markdown
+    )
     for section, mapping in (
         ("Controller metadata", result.controller_metadata),
         ("Diagnostics", result.diagnostics),
@@ -185,6 +201,8 @@ def test_real_local_dashboard_uses_evaluator_and_shared_renderer(
     chart = app.get("vega_lite_chart")[0]
     expected_spec = c4_chart_spec(build_c4_visualization(result))
     actual_spec = json.loads(chart.proto.spec)
+    if not success:
+        expected_spec["layer"][4]["mark"].update(size=360, strokeWidth=3.5)
     assert actual_spec["layer"] == expected_spec["layer"]
     assert actual_spec["encoding"] == expected_spec["encoding"]
     elements = list(app.main)

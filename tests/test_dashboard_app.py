@@ -3,6 +3,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from unittest.mock import Mock
 
+import pytest
 from streamlit.testing.v1 import AppTest
 
 from mehwar.dashboard import app as dashboard_app
@@ -103,7 +104,7 @@ def test_default_fixture_renders_required_evidence_sections() -> None:
     assert "Controller: synthetic-sample-controller" in metadata_text
     assert "Scenario family: engineering-sample" in metadata_text
     assert "Trajectory records: 2" in metadata_text
-    assert rendered.fields["Controller path cost"] == "1.0"
+    assert rendered.fields["Controller path cost"] == "1.000"
     assert rendered.fields["Invalid actions"] == "0"
     assert "Trajectory evidence" in rendered.text
     assert "A* reference steps" not in rendered.fields
@@ -179,3 +180,38 @@ def test_missing_supplied_context_values_are_not_invented(monkeypatch):
         if item.label == "Deterministic reference — full supplied record"
     )
     assert json.loads(reference.json[0].value) == {"planner": "A*"}
+
+
+@pytest.mark.parametrize(
+    ("success", "failure", "invalid", "visible"),
+    [(False, "two_cell_loop", 0, True),
+     (True, "two_cell_loop", 0, False),
+     (False, "two_cell_loop", 1, False),
+     (False, "two_cell_loop", None, False),
+     (False, "timeout_other", 0, False)],
+)
+def test_recurrence_insight_uses_only_supplied_run_fields(
+    monkeypatch, success, failure, invalid, visible,
+):
+    from dataclasses import replace
+
+    from mehwar.dashboard.data import load_evaluation_result
+
+    result = load_evaluation_result(
+        APP_PATH.parent / "fixtures/sample_evaluation_result.json"
+    )
+    result = replace(
+        result, success=success, failure_type=failure,
+        diagnostics={} if invalid is None else {"invalid_actions": invalid},
+    )
+    monkeypatch.setattr(
+        dashboard_app, "_load_selected_result",
+        lambda: (result, "supplied run", None, False),
+    )
+    app = AppTest.from_file(str(APP_PATH)).run()
+    assert not app.exception
+    assert any(
+        item.value
+        == "0 invalid actions · mission still failed through legal recurrence"
+        for item in app.caption
+    ) is visible

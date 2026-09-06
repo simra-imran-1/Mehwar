@@ -100,6 +100,7 @@ def main() -> None:
             st.write(f"Controller: {result.controller}")
             st.write(f"Scenario family: {result.scenario_family}")
             st.write(f"Trajectory records: {len(result.trajectory)}")
+            st.write(f"Controller path cost (supplied): {result.path_cost}")
             _render_mapping(
                 result.controller_metadata, empty_message="No metadata supplied."
             )
@@ -323,6 +324,8 @@ def _render_run_summary(result: EvaluationResult) -> str | None:
         else None
     )
     invalid = result.diagnostics.get("invalid_actions", "Not supplied")
+    if not result.success and invalid == 0 and result.failure_type == "two_cell_loop":
+        st.caption("0 invalid actions · mission still failed through legal recurrence")
     failure = (
         summary.failure_type if summary.failure_type is not None else "Not supplied"
     )
@@ -336,12 +339,17 @@ def _render_run_summary(result: EvaluationResult) -> str | None:
         '<dl class="mw-record">'
         f"<div><dt>Failure type</dt><dd>{escape(failure)}</dd></div>"
         "<div><dt>Controller path cost</dt>"
-        f"<dd>{escape(str(summary.path_cost))}</dd></div>"
+        f"<dd>{escape(_display_cost(summary.path_cost))}</dd></div>"
         "<div><dt>Controller</dt>"
         f'<dd class="mw-identity">{escape(summary.controller)}</dd></div></dl>',
         unsafe_allow_html=True,
     )
     return raw_counts
+
+
+def _display_cost(value: object) -> str:
+    """Round numeric costs only in the hero; retain supplied records verbatim."""
+    return f"{value:.3f}" if type(value) in (int, float) else str(value)
 
 
 def _render_reference_context(result: EvaluationResult) -> None:
@@ -359,7 +367,8 @@ def _render_reference_context(result: EvaluationResult) -> None:
             '<dl class="mw-reference"><div><dt>A* reference steps</dt>'
             f"<dd>{escape(str(reference.get('steps', 'Not supplied')))}</dd></div>"
             "<div><dt>A* reference cost</dt>"
-            f"<dd>{escape(str(reference.get('cost', 'Not supplied')))}</dd></div></dl>",
+            f"<dd>{escape(_display_cost(reference.get('cost', 'Not supplied')))}</dd>"
+            "</div></dl>",
             unsafe_allow_html=True,
         )
     elif reference is None:
@@ -369,14 +378,19 @@ def _render_reference_context(result: EvaluationResult) -> None:
 
 
 def _render_trajectory(result: EvaluationResult) -> None:
+    c4_visualization = build_c4_visualization(result)
+    family_label = (
+        "STRUCTURED C4 SCENARIO"
+        if c4_visualization is not None
+        else result.scenario_family
+    )
     st.markdown(
         '<div class="mw-panel-heading"><div>'
         '<div class="mw-eyebrow">Trajectory evidence</div>'
         f"<h2>Scenario {escape(result.scenario_id)}</h2></div>"
-        f'<span class="mw-tag">{escape(result.scenario_family)}</span></div>',
+        f'<span class="mw-tag">{escape(family_label)}</span></div>',
         unsafe_allow_html=True,
     )
-    c4_visualization = build_c4_visualization(result)
     if c4_visualization is not None:
         _render_c4_trajectory(c4_visualization)
         return
@@ -422,7 +436,9 @@ def _render_trajectory(result: EvaluationResult) -> None:
 
 def _render_c4_trajectory(visualization) -> None:
     spec = c4_chart_spec(visualization)
-    # Presentation only: preserve every layer, point, encoding and tooltip.
+    # Presentation only: preserve every point, encoding and tooltip.
+    if visualization.repeated_display_points:
+        spec["layer"][4]["mark"].update(size=360, strokeWidth=3.5)
     spec["height"] = 420
     spec["background"] = "#ffffff"
     spec["config"] = {

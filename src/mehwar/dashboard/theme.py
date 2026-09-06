@@ -69,7 +69,7 @@ WORKSPACE_CSS = """
 }
 .mw-descriptor { font-size: 14px; line-height: 1.45; max-width: 610px; }
 .mw-prototype {
-    font-size: 11px; letter-spacing: .11em; text-transform: uppercase;
+    font-size: 13px; letter-spacing: .06em; text-transform: uppercase;
     text-align: right; line-height: 1.8; color: #546974;
 }
 .st-key-thesis p { font-size: clamp(21px, 1.6vw, 28px); line-height: 1.3; }
