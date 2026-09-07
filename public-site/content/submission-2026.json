@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "title": "DEFTECH 2026 Submission Snapshot",
+  "date": "September 2026",
+  "historicalNotice": "This historical record preserves the September 2026 submission evidence and capability boundaries. It does not inherit capabilities from later website or product updates.",
+  "category": "Autonomy-assurance evaluation for navigation controllers",
+  "thesis": "Legal action selection does not by itself guarantee mission liveness.",
+  "definition": "MEHWAR is a research-backed MVP for characterizing where autonomous navigation controllers lose mission progress and how those failures appear in trajectory evidence.",
+  "environment": "Controlled 2-D grid-based mission-routing abstraction",
+  "provenance": {
+    "websiteSourceSha": "49ab7591129e4e9b9bc0ba3b39c6e02c7850b03c",
+    "frozenBranch": "feat/integration-demo",
+    "frozenMvpSha": "1586eebf9daa8a8e690bc6f62cc377ce540214ee",
+    "checkpointSha256": "c91d30711aa91957554dfa92b152d2a1d1e14a7b43fa01237722c54cb0acfaaf",
+    "failureProtocol": "c4_c5_recurrence_v1",
+    "movementContract": "8-connected destination-cell-only, corner cutting allowed, orthogonal cost 1, diagonal cost sqrt(2)",
+    "scenarioClassification": "development_validation",
+    "scenarioSelection": "selected current MVP demo",
+    "dataClassification": "current-mehwar-selected-demo-run",
+    "freshHoldout": false,
+    "evidenceDirectory": "outputs/final-submission-selected-demo",
+    "manifestFile": "manifest.json",
+    "researchSourceCommit": "95b8ec3834e79464e18dd9cdcef3c0378ba343cc",
+    "scenarioManifestGitBlob": "d687a62a72dc266eb9092fa36221cba7fe309153",
+    "verification": ["137 tests passed", "0 skipped", "Ruff PASS", "git diff --check PASS"],
+    "verificationInterpretation": "Implementation verification recorded for the frozen submission build. These are not safety scores or certification checks."
+  },
+  "referenceLabel": "deterministic A* reliability reference under the shared grid contract",
+  "selectionCaveat": "Two selected development-validation scenarios illustrate the workflow. They are not a statistically representative benchmark or a fresh physically sealed holdout study.",
+  "referenceInterpretation": "The point is not that one algorithm wins. The point is that legality alone did not expose the failure.",
+  "scenarios": [
+    {
+      "id": "C4-0001",
+      "missionCompleted": false,
+      "outcome": "Mission not completed",
+      "classification": "two_cell_loop",
+      "evidenceLabel": "LIVENESS DEGRADATION OBSERVED",
+      "steps": 28,
+      "invalidActions": 0,
+      "controllerPathCost": "37.112698372208094",
+      "referenceSteps": 14,
+      "referencePathCost": "16.071067811865476",
+      "interpretation": "In this selected controlled scenario, zero invalid actions were recorded, yet the controller entered a legal two-cell recurrence and did not complete the mission.",
+      "sourceReport": "C4-0001.json",
+      "screenshot": "/c4-0001-liveness-degradation.png",
+      "screenshotAlt": "Original submission-era MEHWAR evaluator screenshot for C4-0001: mission not completed, two_cell_loop, 28 controller steps and zero invalid actions. The dashboard includes the trajectory, deterministic reference, diagnostics and interpretation boundaries."
+    },
+    {
+      "id": "C4-0000",
+      "missionCompleted": true,
+      "outcome": "Mission completed",
+      "classification": "success",
+      "evidenceLabel": "NO FAILURE OBSERVED IN SELECTED DEMO RUN",
+      "steps": 16,
+      "invalidActions": 0,
+      "controllerPathCost": "17.242640687119284",
+      "referenceSteps": 15,
+      "referencePathCost": "16.65685424949238",
+      "interpretation": "The same evaluation workflow also records successful mission completion.",
+      "sourceReport": "C4-0000.json",
+      "screenshot": "/c4-0000-success.png",
+      "screenshotAlt": "Original submission-era MEHWAR evaluator screenshot for C4-0000: mission completed, success, 16 controller steps and zero invalid actions. The dashboard includes the trajectory, deterministic reference, diagnostics and interpretation boundaries."
+    }
+  ],
+  "workflow": [
+    { "stage": "Controller", "description": "Verified MaskablePPO controller adapter" },
+    { "stage": "Scenario runner", "description": "Selected structured C4 scenarios" },
+    { "stage": "Trajectory recorder", "description": "Trajectory and diagnostic capture" },
+    { "stage": "Failure intelligence", "description": "Versioned mission-liveness and failure semantics; invalid actions recorded separately" },
+    { "stage": "Deterministic reference", "description": "Deterministic A* reliability reference under the shared grid contract" },
+    { "stage": "Evidence profile", "description": "Provenance and explicit limitations" },
+    { "stage": "Dashboard + report", "description": "Engineer-facing trajectories, JSON and human-readable reporting" }
+  ],
+  "demonstrates": [
+    "Selected controller behavior can remain action-legal while losing mission liveness",
+    "Trajectories and diagnostics can be preserved reproducibly",
+    "Recurrence can be classified under explicit versioned semantics",
+    "Deterministic task-reference context can be provided under the shared movement contract"
+  ],
+  "notEstablished": [
+    "Flight validation or deployment readiness",
+    "Safety certification or a collision-safety guarantee",
+    "Generic UAV robustness",
+    "Generic PPO or planner superiority",
+    "External autonomy-stack, OEM or HIL validation",
+    "Customer validation, an existing pilot or product-market validation"
+  ],
+  "team": [
+    { "name": "Muzzammil Sajid", "role": "Co-founder — Research & Assurance", "affiliation": "GIKI" },
+    { "name": "Simra Imran", "role": "Co-founder — Product & Integration", "affiliation": "NUST / SEECS" }
+  ],
+  "teamStory": "MEHWAR combines research/assurance ownership with product/integration ownership. The project grew from UAV dynamic-routing research and has already been translated into a functioning, reproducible evaluation workflow.",
+  "evidenceBoundary": "Evidence is tied to the tested scenario, controller/configuration, evaluation semantics, and environment."
+}

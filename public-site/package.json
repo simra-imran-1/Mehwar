@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run test && next build",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/check-evidence.mjs && node scripts/check-snapshot.mjs",
+    "check:static": "node scripts/check-static.mjs",
+    "preview": "node scripts/preview.mjs"
   },
   "dependencies": {
     "next": "^16.1.6",

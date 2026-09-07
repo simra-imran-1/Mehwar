@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<rect width="1200" height="630" fill="#f8f8f4"/>
+<g font-family="Arial, sans-serif" fill="#172d3c">
+<path d="M58 80V54l17 19 17-19v26" fill="none" stroke="#172d3c" stroke-width="3"/><circle cx="58" cy="80" r="3"/><circle cx="92" cy="80" r="3"/>
+<text x="110" y="79" font-size="30" font-weight="700" letter-spacing="4">MEHWAR</text>
+<text x="58" y="150" font-size="15" fill="#426b87">AUTONOMY-ASSURANCE EVALUATION</text>
+<text x="55" y="239" font-size="61" letter-spacing="-2">Legal action selection</text>
+<text x="55" y="310" font-size="61" letter-spacing="-2">does not guarantee</text>
+<text x="55" y="382" font-size="61" fill="#426b87" letter-spacing="-2">mission liveness.</text>
+<path d="M58 433H644" stroke="#d6dcdd"/>
+<text x="58" y="480" font-size="22">0 invalid actions.</text><text x="58" y="516" font-size="22" fill="#946022">Mission not completed.</text>
+<text x="58" y="581" font-size="13" fill="#52636d">C4-0001 · Selected controlled evidence · 2-D mission-routing abstraction</text>
+<path d="M693 56V565" stroke="#d6dcdd"/>
+<text x="736" y="85" font-size="14" fill="#52636d" font-family="Arial, sans-serif">C4-0001 / RECORDED TRACE</text>
+<defs><pattern id="grid" x="736" y="138" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#dce2e2"/></pattern></defs>
+<rect x="736" y="138" width="360" height="360" fill="url(#grid)" stroke="#dce2e2"/>
+<rect x="930" y="236" width="20" height="20" fill="#7f919b"/><rect x="954" y="236" width="20" height="20" fill="#7f919b"/><rect x="978" y="236" width="20" height="20" fill="#7f919b"/><rect x="1002" y="236" width="20" height="20" fill="#7f919b"/><rect x="930" y="260" width="20" height="20" fill="#7f919b"/><rect x="930" y="284" width="20" height="20" fill="#7f919b"/><rect x="930" y="308" width="20" height="20" fill="#7f919b"/><rect x="930" y="332" width="20" height="20" fill="#7f919b"/><rect x="930" y="356" width="20" height="20" fill="#7f919b"/><rect x="930" y="380" width="20" height="20" fill="#7f919b"/><rect x="954" y="380" width="20" height="20" fill="#7f919b"/><rect x="978" y="380" width="20" height="20" fill="#7f919b"/><rect x="1002" y="380" width="20" height="20" fill="#7f919b"/><polyline points="964,342 988,342 1012,366 1036,390 1012,414 988,414 964,414 940,414 916,414 892,414 868,414 844,414 820,414 796,438 772,462" fill="none" stroke="#71828c" stroke-width="2" stroke-dasharray="3 5"/>
+<polyline points="964,342 964,366 988,366 1012,366 1036,390 1012,414 988,438 964,462 940,486 916,486 892,462 868,486 844,486 820,486 796,462 772,486 748,462 772,486 748,462 772,486 748,462 772,486 748,462 772,486 748,462 772,486 748,462 772,486 748,462" fill="none" stroke="#426b87" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="964" cy="342" r="6" fill="#f8f8f4" stroke="#426b87" stroke-width="3"/>
+<rect x="767" y="457" width="10" height="10" fill="#f8f8f4" stroke="#172d3c" stroke-width="2"/>
+<circle cx="772" cy="486" r="10" fill="#f2e7d5" stroke="#946022" stroke-width="2"/><circle cx="748" cy="462" r="10" fill="#f2e7d5" stroke="#946022" stroke-width="2"/><text x="750" y="548" font-size="13" fill="#946022" font-family="Arial, sans-serif">LEGAL TWO-CELL RECURRENCE</text>
+</g></svg>

@@ -1,0 +1,591 @@
+{
+  "schema_version": "mehwar-public-evidence-v1",
+  "frozen_mvp_sha": "1586eebf9daa8a8e690bc6f62cc377ce540214ee",
+  "checkpoint_sha256": "c91d30711aa91957554dfa92b152d2a1d1e14a7b43fa01237722c54cb0acfaaf",
+  "failure_protocol": "c4_c5_recurrence_v1",
+  "movement_contract": "8-connected destination-cell-only, corner cutting allowed, orthogonal cost 1, diagonal cost sqrt(2)",
+  "fresh_holdout": false,
+  "scenario_classification": "development_validation",
+  "scenario_selection": "selected current MVP demo",
+  "data_classification": "current-mehwar-selected-demo-run",
+  "coordinate_convention": "Positions are [row, col]; plot x = col, y = row; row increases downward.",
+  "source_lineage": {
+    "exports": [
+      {
+        "file": "outputs/final-submission-selected-demo/C4-0000.json",
+        "sha256": "8ebbad71923d4252bfff52c7f2be9ecc924311fcee0b7e2f1962e9bcb45a6dda"
+      },
+      {
+        "file": "outputs/final-submission-selected-demo/C4-0001.json",
+        "sha256": "77aa27d925a465b5dad06750c1e74702dae44aeb6e3838a1cf47482a2616d746"
+      },
+      {
+        "file": "outputs/final-submission-selected-demo/manifest.json",
+        "sha256": "7d7c95bcb0b122bbd8240a6dddbaa0e21874936f81ab48410a7ad63b33fc9e23"
+      }
+    ],
+    "scenario_geometry_source": "src/mehwar/scenarios/c4.py",
+    "controller_trace_regression_source": "tests/test_real_seed33.py",
+    "c4_0001_trace_sha256": "ec7fea9558b5de358d71632065497c14170bf225e2ee9d94de42647ab9f81fc3",
+    "research_source_repository": "muzzammilsajid1/uav-dynamic-routing",
+    "research_source_commit": "95b8ec3834e79464e18dd9cdcef3c0378ba343cc",
+    "scenario_manifest": "evaluation/manifests/rl_v3_phase_c4_validation.json",
+    "scenario_manifest_git_blob": "d687a62a72dc266eb9092fa36221cba7fe309153"
+  },
+  "scenarios": [
+    {
+      "controller": "MaskablePPOCheckpointAdapter",
+      "scenario_id": "C4-0001",
+      "scenario_family": "u_trap",
+      "success": false,
+      "steps": 28,
+      "path_cost": 37.112698372208094,
+      "failure_type": "two_cell_loop",
+      "trajectory": [
+        [
+          8,
+          9
+        ],
+        [
+          9,
+          9
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          9,
+          11
+        ],
+        [
+          10,
+          12
+        ],
+        [
+          11,
+          11
+        ],
+        [
+          12,
+          10
+        ],
+        [
+          13,
+          9
+        ],
+        [
+          14,
+          8
+        ],
+        [
+          14,
+          7
+        ],
+        [
+          13,
+          6
+        ],
+        [
+          14,
+          5
+        ],
+        [
+          14,
+          4
+        ],
+        [
+          14,
+          3
+        ],
+        [
+          13,
+          2
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          13,
+          0
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          13,
+          0
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          13,
+          0
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          13,
+          0
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          13,
+          0
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          13,
+          0
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          13,
+          0
+        ]
+      ],
+      "reference_result": {
+        "planner": "A*",
+        "found": true,
+        "steps": 14,
+        "cost": 16.071067811865476,
+        "trajectory": [
+          [
+            8,
+            9
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            9,
+            11
+          ],
+          [
+            10,
+            12
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            12,
+            2
+          ],
+          [
+            13,
+            1
+          ]
+        ],
+        "movement_contract": "8-connected_destination-only_corner-cutting_static_v1"
+      },
+      "diagnostics": {
+        "invalid_actions": 0,
+        "collision": false,
+        "attempted_actions": 28,
+        "truncated": true
+      },
+      "configuration": {
+        "grid_size": 15,
+        "difficulty": "moderate",
+        "start": [
+          8,
+          9
+        ],
+        "goal": [
+          13,
+          1
+        ],
+        "blocked": [
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            10
+          ],
+          [
+            4,
+            11
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            10,
+            11
+          ]
+        ],
+        "episode_budget": 28,
+        "budget_rule": "max(10, ceil(optimal_steps * 2.0))",
+        "manifest_optimal_steps": 14,
+        "manifest_optimal_cost": 16.071067811865476,
+        "movement_contract": "8-connected_destination-only_corner-cutting_static_v1",
+        "observation_protocol": "C4 frozen global_local; recency channel zero",
+        "failure_protocol": "c4_c5_recurrence_v1",
+        "step_definition": "completed legal moves",
+        "dynamics": false
+      },
+      "provenance": {
+        "measurement_source": "current MEHWAR C4 runner execution",
+        "scenario_source": "frozen C4 development-validation manifest excerpt",
+        "scenario_selection": "selected current MVP demo",
+        "fresh_holdout": false,
+        "failure_protocol": "c4_c5_recurrence_v1",
+        "movement_contract": "8-connected destination-cell-only, corner cutting allowed, orthogonal cost 1, diagonal cost sqrt(2)",
+        "controller_metadata_source": "controller.metadata()",
+        "data_classification": "current-mehwar-selected-demo-run",
+        "research_source_repository": "muzzammilsajid1/uav-dynamic-routing",
+        "research_source_commit": "95b8ec3834e79464e18dd9cdcef3c0378ba343cc",
+        "scenario_manifest": "evaluation/manifests/rl_v3_phase_c4_validation.json",
+        "scenario_manifest_git_blob": "d687a62a72dc266eb9092fa36221cba7fe309153",
+        "scenario_classification": "development_validation"
+      },
+      "controller_metadata": {
+        "controller_family": "MaskablePPO",
+        "checkpoint_sha256": "c91d30711aa91957554dfa92b152d2a1d1e14a7b43fa01237722c54cb0acfaaf",
+        "seed": 33,
+        "deterministic": true,
+        "action_masking": true
+      }
+    },
+    {
+      "controller": "MaskablePPOCheckpointAdapter",
+      "scenario_id": "C4-0000",
+      "scenario_family": "u_trap",
+      "success": true,
+      "steps": 16,
+      "path_cost": 17.242640687119284,
+      "failure_type": "success",
+      "trajectory": [
+        [
+          7,
+          5
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          8,
+          4
+        ],
+        [
+          8,
+          3
+        ],
+        [
+          9,
+          2
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          7
+        ],
+        [
+          10,
+          8
+        ],
+        [
+          10,
+          9
+        ],
+        [
+          10,
+          10
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          10,
+          12
+        ],
+        [
+          10,
+          13
+        ],
+        [
+          11,
+          14
+        ]
+      ],
+      "reference_result": {
+        "planner": "A*",
+        "found": true,
+        "steps": 15,
+        "cost": 16.65685424949238,
+        "trajectory": [
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            10,
+            11
+          ],
+          [
+            10,
+            12
+          ],
+          [
+            10,
+            13
+          ],
+          [
+            11,
+            14
+          ]
+        ],
+        "movement_contract": "8-connected_destination-only_corner-cutting_static_v1"
+      },
+      "diagnostics": {
+        "invalid_actions": 0,
+        "collision": false,
+        "attempted_actions": 16,
+        "truncated": false
+      },
+      "configuration": {
+        "grid_size": 15,
+        "difficulty": "moderate",
+        "start": [
+          7,
+          5
+        ],
+        "goal": [
+          11,
+          14
+        ],
+        "blocked": [
+          [
+            3,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            6
+          ]
+        ],
+        "episode_budget": 30,
+        "budget_rule": "max(10, ceil(optimal_steps * 2.0))",
+        "manifest_optimal_steps": 15,
+        "manifest_optimal_cost": 16.65685424949238,
+        "movement_contract": "8-connected_destination-only_corner-cutting_static_v1",
+        "observation_protocol": "C4 frozen global_local; recency channel zero",
+        "failure_protocol": "c4_c5_recurrence_v1",
+        "step_definition": "completed legal moves",
+        "dynamics": false
+      },
+      "provenance": {
+        "measurement_source": "current MEHWAR C4 runner execution",
+        "scenario_source": "frozen C4 development-validation manifest excerpt",
+        "scenario_selection": "selected current MVP demo",
+        "fresh_holdout": false,
+        "failure_protocol": "c4_c5_recurrence_v1",
+        "movement_contract": "8-connected destination-cell-only, corner cutting allowed, orthogonal cost 1, diagonal cost sqrt(2)",
+        "controller_metadata_source": "controller.metadata()",
+        "data_classification": "current-mehwar-selected-demo-run",
+        "research_source_repository": "muzzammilsajid1/uav-dynamic-routing",
+        "research_source_commit": "95b8ec3834e79464e18dd9cdcef3c0378ba343cc",
+        "scenario_manifest": "evaluation/manifests/rl_v3_phase_c4_validation.json",
+        "scenario_manifest_git_blob": "d687a62a72dc266eb9092fa36221cba7fe309153",
+        "scenario_classification": "development_validation"
+      },
+      "controller_metadata": {
+        "controller_family": "MaskablePPO",
+        "checkpoint_sha256": "c91d30711aa91957554dfa92b152d2a1d1e14a7b43fa01237722c54cb0acfaaf",
+        "seed": 33,
+        "deterministic": true,
+        "action_masking": true
+      }
+    }
+  ]
+}
