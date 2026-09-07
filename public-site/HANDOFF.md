@@ -10,7 +10,7 @@ The V2 implementation and local quality gates are complete. Publishing is blocke
 
 - Website branch: `codex/mehwar-web-v2`.
 - Starting point: latest fetched `origin/feat/public-site`, `49ab7591129e4e9b9bc0ba3b39c6e02c7850b03c`.
-- Final website SHA: **pending final commit**.
+- Verified website implementation SHA: `879567c93097bd95ced0f3b5f9691e0f75d519e6`. The subsequent handoff-only commit records this result without changing the export; use `git rev-parse HEAD` for the branch's final documentation revision.
 - Frozen MVP branch: `feat/integration-demo`.
 - Frozen MVP SHA: `1586eebf9daa8a8e690bc6f62cc377ce540214ee`.
 - Scope: all website changes are inside `public-site/` in a separate worktree. The original frozen checkout and `main` remain unchanged. No scientific source, evaluator, controller, checkpoint, scenario, research repository or frozen test was modified.
@@ -21,7 +21,10 @@ The V2 implementation and local quality gates are complete. Publishing is blocke
 - Historical route: [https://mehwar-deftech.vercel.app/deftech-2026](https://mehwar-deftech.vercel.app/deftech-2026).
 - Existing Vercel project: `mehwar-deftech`.
 - V2 public accessibility: **not deployed**. The existing live alias continues to serve V1. `/deftech-2026` is built and locally verified but has not been published. No successful V2 deployment ID was returned.
+- Post-attempt unauthenticated HTTP checks: the homepage returns 200 with the prior V1 content; `/deftech-2026` returns 404. The V2 explorer and historical-route links are absent from the live homepage.
 - The old V1 deployment was inspected before redesign. The connector was given the existing project name and team identity, target `production`, and 56 files totaling 1,638,923 bytes. It returned HTTP 403: “You don't have permission to create a Production Deployment for this project.” The local CLI has no authenticated credentials. An authorized project member must deploy the prepared export to the same project after authentication. No replacement project or hostname was created.
+
+Prepared local artifacts (ignored by Git): `qa/mehwar-web-v2-static.zip`, `qa/production-manifest.json`, and `qa/deploy-payload.json`. The ZIP contains only the 55 static export files plus `vercel.json`; it is 715,777 bytes with SHA256 `e6d25a0a13ab85d387fd3f11a40be85302498cfa619f7bd117351728af75bb5f`. The manifest records every packaged file's size and digest. Rebuild and repackage after any website change.
 
 ## DESIGN DIRECTION
 
