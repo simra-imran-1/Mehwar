@@ -1,7 +1,49 @@
+export type Founder = {
+  name: string;
+  role: string;
+  faculty: string;
+  institution: string;
+  location: string;
+  shortInstitution: string;
+  email: string;
+};
+
+// Public contact details explicitly approved in the V3 specification.
+export const founders = [
+  {
+    name: "Muzzammil Sajid",
+    role: "Co-founder — Research & Assurance",
+    faculty: "Faculty of Mechanical Engineering",
+    institution:
+      "Ghulam Ishaq Khan Institute of Engineering Sciences and Technology",
+    location: "Topi, Pakistan",
+    shortInstitution: "GIKI",
+    email: "muzzammilsajid1@gmail.com",
+  },
+  {
+    name: "Simra Imran",
+    role: "Co-founder — Product & Integration",
+    faculty: "School of Electrical Engineering and Computer Science",
+    institution: "National University of Sciences and Technology",
+    location: "Islamabad, Pakistan",
+    shortInstitution: "NUST / SEECS",
+    email: "simraimran158@gmail.com",
+  },
+] as const satisfies readonly Founder[];
+
+// Historical implementation verification; never a live reliability or safety metric.
+export const submissionVerification = {
+  testsPassed: 137,
+  testsSkipped: 0,
+  ruff: "PASS",
+  diffCheck: "PASS",
+} as const;
+
 export const siteConfig = {
   canonicalUrl: "https://mehwar-deftech.vercel.app",
   evidenceArchiveUrl: "",
   publicEmail: "",
+  founderContacts: founders,
   demoVideo: "",
   demoCaptions: "",
   demoTranscript: "",

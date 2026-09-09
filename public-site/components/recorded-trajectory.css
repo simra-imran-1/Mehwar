@@ -1,0 +1,177 @@
+.v3 .recorded-field {
+  --field-background: var(--v-dark, #071b25);
+  --field-controller: var(--v-blue, #a4c8dc);
+  --field-amber: var(--v-amber, #efb366);
+  --field-reference: #b0bcc3;
+  --field-axis: #a9bac2;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.v3 .recorded-field-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.v3 .recorded-grid-line,
+.v3 .recorded-grid-boundary {
+  stroke: #35505c;
+  stroke-width: 0.8;
+}
+.v3 .recorded-axis {
+  fill: var(--field-axis);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.065em;
+}
+.v3 .recorded-obstacle {
+  fill: var(--v-obstacle, #59727d);
+}
+.v3 .recorded-reference {
+  stroke: var(--field-reference);
+  stroke-width: 2.5;
+  stroke-dasharray: 3 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.v3 .recorded-controller {
+  stroke: var(--field-controller);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.v3 .recorded-waypoint {
+  fill: var(--field-controller);
+}
+.v3 .recorded-start {
+  fill: var(--field-background);
+  stroke: var(--field-controller);
+  stroke-width: 2.5;
+}
+.v3 .recorded-goal {
+  fill: var(--field-background);
+  stroke: #eff3f2;
+  stroke-width: 2;
+}
+.v3 .recorded-label {
+  fill: #eff3f2;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+}
+.v3 .recorded-callout {
+  stroke: var(--field-reference);
+  stroke-width: 1;
+}
+.v3 .recorded-recurrence-line {
+  stroke: var(--field-amber);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.v3 .recorded-recurrence-ring {
+  fill: var(--field-background);
+  fill-opacity: 0.45;
+  stroke: var(--field-amber);
+  stroke-width: 1.5;
+}
+.v3 .recorded-recurrence-callout {
+  stroke: var(--field-amber);
+  stroke-width: 1;
+}
+.v3 .recorded-recurrence-label,
+.v3 .recorded-recurrence-coordinate {
+  fill: var(--field-amber);
+  font-family: var(--font-mono, monospace);
+}
+.v3 .recorded-recurrence-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.v3 .recorded-recurrence-coordinate {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+.v3 .recorded-current {
+  color: var(--field-controller);
+}
+.v3 .recorded-current.is-recurrent {
+  color: var(--field-amber);
+}
+.v3 .recorded-current-ring {
+  fill: var(--field-background);
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.v3 .recorded-current-point {
+  fill: currentColor;
+}
+
+.v3 .recorded-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 22px;
+  padding: 0 20px 18px;
+  color: #c0cdd2;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.v3 .recorded-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.v3 .recorded-legend-line {
+  width: 20px;
+  height: 0;
+  border-top: 2px solid var(--field-controller);
+}
+.v3 .recorded-legend-line.is-reference {
+  border-top: 2px dashed var(--field-reference);
+}
+.v3 .recorded-legend-block {
+  width: 9px;
+  height: 9px;
+  background: var(--v-obstacle, #59727d);
+}
+.v3 .recorded-legend-ring {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--field-amber);
+  border-radius: 50%;
+}
+
+@media (max-width: 430px) {
+  .v3 .recorded-axis {
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+  .v3 .recorded-legend {
+    gap: 8px 15px;
+    padding-inline: 12px;
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3 .recorded-field *,
+  .v3 .recorded-field *::before,
+  .v3 .recorded-field *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media print {
+  .v3 .recorded-field {
+    break-inside: avoid;
+    print-color-adjust: exact;
+    background: var(--field-background);
+  }
+}

@@ -1,0 +1,2 @@
+# This public frozen evidence artifact is checked by its exact byte digest.
+public/evidence/selected-runs.json -text

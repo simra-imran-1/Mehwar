@@ -1,8 +1,9 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
+import { presentationAnnotations } from "../content/playback.mjs";
 
-// The social card renders frozen coordinates; it does not synthesize a trace.
+// Projection of immutable evidence, with no synthesized or smoothed coordinates.
 const evidence = JSON.parse(
   await readFile(
     new URL("../public/evidence/selected-runs.json", import.meta.url),
@@ -10,50 +11,47 @@ const evidence = JSON.parse(
   ),
 );
 const run = evidence.scenarios.find((entry) => entry.scenario_id === "C4-0001");
-const step = 24,
-  x = 736,
-  y = 138;
-const point = ([row, col]) => [
-  x + col * step + step / 2,
-  y + row * step + step / 2,
-];
+const size = 24,
+  x = 746,
+  y = 150;
+const point = ([row, col]) => [x + (col + 0.5) * size, y + (row + 0.5) * size];
 const path = (cells) => cells.map((cell) => point(cell).join(",")).join(" ");
 const blocks = run.configuration.blocked
   .map(
     ([row, col]) =>
-      `<rect x="${x + col * step + 2}" y="${y + row * step + 2}" width="20" height="20" fill="#7f919b"/>`,
+      `<rect x="${x + col * size + 2}" y="${y + row * size + 2}" width="20" height="20" fill="#59727d"/>`,
   )
   .join("");
-const rings = run.trajectory
-  .slice(15, 17)
+const rings = presentationAnnotations[run.scenario_id].recurrenceCells
   .map((cell) => {
     const [cx, cy] = point(cell);
-    return `<circle cx="${cx}" cy="${cy}" r="10" fill="#f2e7d5" stroke="#946022" stroke-width="2"/>`;
+    return `<circle cx="${cx}" cy="${cy}" r="10" fill="#071b25" fill-opacity=".5" stroke="#efb366" stroke-width="2"/>`;
   })
   .join("");
 const [sx, sy] = point(run.configuration.start),
   [gx, gy] = point(run.configuration.goal);
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-<rect width="1200" height="630" fill="#f8f8f4"/>
-<g font-family="Arial, sans-serif" fill="#172d3c">
-<path d="M58 80V54l17 19 17-19v26" fill="none" stroke="#172d3c" stroke-width="3"/><circle cx="58" cy="80" r="3"/><circle cx="92" cy="80" r="3"/>
+<rect width="1200" height="630" fill="#071b25"/>
+<g font-family="Arial, sans-serif" fill="#f2f1e9">
+<path d="M58 80V54l17 19 17-19v26" fill="none" stroke="#f2f1e9" stroke-width="3"/><circle cx="58" cy="80" r="3"/><circle cx="92" cy="80" r="3"/>
 <text x="110" y="79" font-size="30" font-weight="700" letter-spacing="4">MEHWAR</text>
-<text x="58" y="150" font-size="15" fill="#426b87">AUTONOMY-ASSURANCE EVALUATION</text>
-<text x="55" y="239" font-size="61" letter-spacing="-2">Legal action selection</text>
-<text x="55" y="310" font-size="61" letter-spacing="-2">does not guarantee</text>
-<text x="55" y="382" font-size="61" fill="#426b87" letter-spacing="-2">mission liveness.</text>
-<path d="M58 433H644" stroke="#d6dcdd"/>
-<text x="58" y="480" font-size="22">0 invalid actions.</text><text x="58" y="516" font-size="22" fill="#946022">Mission not completed.</text>
-<text x="58" y="581" font-size="13" fill="#52636d">C4-0001 · Selected controlled evidence · 2-D mission-routing abstraction</text>
-<path d="M693 56V565" stroke="#d6dcdd"/>
-<text x="736" y="85" font-size="14" fill="#52636d" font-family="Arial, sans-serif">C4-0001 / RECORDED TRACE</text>
-<defs><pattern id="grid" x="${x}" y="${y}" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#dce2e2"/></pattern></defs>
-<rect x="${x}" y="${y}" width="360" height="360" fill="url(#grid)" stroke="#dce2e2"/>
-${blocks}<polyline points="${path(run.reference_result.trajectory)}" fill="none" stroke="#71828c" stroke-width="2" stroke-dasharray="3 5"/>
-<polyline points="${path(run.trajectory)}" fill="none" stroke="#426b87" stroke-width="3" stroke-linejoin="round"/>
-<circle cx="${sx}" cy="${sy}" r="6" fill="#f8f8f4" stroke="#426b87" stroke-width="3"/>
-<rect x="${gx - 5}" y="${gy - 5}" width="10" height="10" fill="#f8f8f4" stroke="#172d3c" stroke-width="2"/>
-${rings}<text x="750" y="548" font-size="13" fill="#946022" font-family="Arial, sans-serif">LEGAL TWO-CELL RECURRENCE</text>
+<text x="58" y="153" font-size="13" letter-spacing="1.5" fill="#a4c8dc">AUTONOMY-ASSURANCE EVALUATION</text>
+<text x="55" y="244" font-size="68" letter-spacing="-3">Every move legal.</text>
+<text x="55" y="321" font-size="68" letter-spacing="-3" fill="#a4c8dc">Mission unfinished.</text>
+<path d="M58 373H659" stroke="#35505c"/>
+<text x="53" y="477" font-size="108" letter-spacing="-5">${run.diagnostics.invalid_actions}</text>
+<text x="136" y="429" font-size="23">invalid actions</text>
+<text x="136" y="462" font-size="17" fill="#efb366">Mission not completed.</text>
+<text x="58" y="574" font-size="13" fill="#b0bec5">Selected controlled evidence · 2-D mission-routing abstraction</text>
+<path d="M698 55V578" stroke="#35505c"/>
+<text x="746" y="84" font-size="14" letter-spacing="1" fill="#b0bec5">${run.scenario_id} / RECORDED TRACE</text>
+<defs><pattern id="grid" x="${x}" y="${y}" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#35505c" stroke-width=".8"/></pattern></defs>
+<rect x="${x}" y="${y}" width="360" height="360" fill="url(#grid)" stroke="#35505c"/>
+${blocks}<polyline points="${path(run.trajectory)}" fill="none" stroke="#a4c8dc" stroke-width="3"/>
+<circle cx="${sx}" cy="${sy}" r="6" fill="#071b25" stroke="#a4c8dc" stroke-width="3"/>
+<rect x="${gx - 5}" y="${gy - 5}" width="10" height="10" fill="#071b25" stroke="#f2f1e9" stroke-width="2"/>
+${rings}<text x="746" y="558" font-size="13" letter-spacing="1" fill="#efb366">LEGAL TWO-CELL RECURRENCE</text>
+<text x="746" y="582" font-size="12" fill="#b0bec5">${run.steps} recorded steps / ${run.failure_type}</text>
 </g></svg>`;
 await sharp(Buffer.from(svg))
   .png()
@@ -61,4 +59,6 @@ await sharp(Buffer.from(svg))
     fileURLToPath(new URL("../public/opengraph-image.png", import.meta.url)),
   );
 await writeFile(new URL("../public/opengraph-image.svg", import.meta.url), svg);
-console.log("Generated 1200×630 social image from frozen C4-0001 coordinates.");
+console.log(
+  "Generated 1200×630 V3 social image from frozen C4-0001 coordinates.",
+);

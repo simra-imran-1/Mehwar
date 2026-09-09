@@ -7,7 +7,7 @@
     "build": "npm run test && next build",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/check-evidence.mjs && node scripts/check-snapshot.mjs",
+    "test": "node scripts/check-evidence.mjs && node scripts/check-snapshot.mjs && node scripts/check-playback.mjs",
     "check:static": "node scripts/check-static.mjs",
     "preview": "node scripts/preview.mjs"
   },
