@@ -17,7 +17,7 @@ export const founders = [
     institution:
       "Ghulam Ishaq Khan Institute of Engineering Sciences and Technology",
     location: "Topi, Pakistan",
-    shortInstitution: "GIKI",
+    shortInstitution: "GIKI / FME",
     email: "muzzammilsajid1@gmail.com",
   },
   {
